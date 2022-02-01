@@ -1,0 +1,330 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION='0.0.1'
+
+MODULE_NAMING_CONVENTION='<organization>/terraform-<provider>-<name>-module'
+CONFIG="$HOME/.config/gh-tf-mod/config.json"
+SHOW_HELP=false
+
+check_for_required_deps() {
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "jq is required to run gh-tf-mod"
+        exit 1
+    fi
+}
+
+check_for_required_deps
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      COMMAND='help'
+      SHOW_HELP=true
+      shift
+      ;;
+    -v|--version)
+      COMMAND='version'
+      # This flag either indicates that we are trying to show the version 
+      # of the extension, or that we are trying to modify a command with a
+      # version flag if the command is overridden from here.
+      USE_VERSION=true
+      shift
+      ;;
+    -c|--config)
+      CONFIG="$2"
+      shift 2
+      ;;
+    -o|--organization)
+      ORG="$2"
+      shift 2
+      ;;
+    -p|--provider)
+      PROVIDER="$2"
+      shift 2
+      ;;
+    -*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional args
+
+set +u
+if [[ -n $1 ]]; then
+    COMMAND=$1
+else
+    COMMAND='help'
+fi
+set -u
+
+print_usage() {
+cat <<- EOT
+Usage:
+    gh tf-mod [-hvopc] <command>
+
+    flags:
+        -h, --help          Prints help information
+        -v, --version       Prints version information
+
+    global flags:
+        -o, --organization  The GitHub organization to use
+        -p, --provider      The provider to use
+        -c, --config        The path to the config file
+
+    commands:
+        ls
+        add
+        rm
+        version
+        help
+EOT
+}
+
+list_tf_modules() {
+    local -r ORG="$1"
+    gh api -X GET 'search/repositories' -f q='terraform-module in:name user:'"$ORG" --jq '.items[] | select(.name|startswith("terraform-")) | select(.name|endswith("-module")) | .name'
+}
+
+count_tf_modules() {
+    local -r ORG="$1"
+    list_tf_modules "$ORG" | grep -c ""
+}
+
+list_provider_modules() {
+    local -r ORG="$1"
+    local -r PROVIDER="$2"
+    gh api -X GET 'search/repositories' -f q='terraform-'"$PROVIDER"'-module in:name user:'"$ORG" --jq '.items[] | select(.name|startswith("terraform-'"$PROVIDER"'-")) | select(.name|endswith("-module")) | .name'
+
+}
+
+count_provider_modules() {
+    local -r ORG="$1"
+    local -r PROVIDER="$2"
+    list_tf_modules "$ORG" "$PROVIDER" | grep -c ""
+}
+
+create_config() {
+    echo "Creating config..."
+    echo "The file will be created in $CONFIG. Use the -c/--config to specify a different config location."
+    echo "For gh-tf-mod to work, you need a GitHub organization with Terraform modules in repos with the following naming scheme:"
+    echo "$MODULE_NAMING_CONVENTION"
+    read -rp "Which organization would you like to use with gh-tf-mod? Leave blank to use your personal GitHub user: " ORG
+
+    if [[ -z "$ORG" ]]; then
+        ORG=$(gh api user --jq '.login')
+        echo "Defaulting to logged in user: $ORG."
+    fi
+
+    mkdir -p "$(dirname "$CONFIG")"
+    echo "{ \"organization\": \"$ORG\" }" | jq '.' > "$CONFIG"
+
+    tf_module_count="$(count_tf_modules "$ORG")"
+    if [[ "$tf_module_count" -gt 0 ]]; then
+        echo "Found $tf_module_count Terraform modules in $ORG."
+        echo "If you need to overwrite the organization used in a command, use the -o/--organization flag."
+    else
+        echo "No Terraform modules found in '$ORG'. Create repos matching this naming scheme '$MODULE_NAMING_CONVENTION' to use this extension."
+    fi
+
+    echo "Would you like to set a default provider? This provider can be overwritten with the -p/--provider flag."
+
+    read -rp "Would you like to set a default provider? Leave blank to avoid setting a default provider: " PROVIDER
+
+    if [[ -n $PROVIDER ]]; then
+        provider_module_count="$(count_provider_modules "$ORG" "$PROVIDER")"
+        if [[ "$provider_module_count" -gt 0 ]]; then
+            echo "Found $provider_module_count Terraform modules in $ORG for provider '$PROVIDER'."
+            echo "If you need to overwrite the provider used in a command, use the -p/--provider flag."
+        else
+            echo "No Terraform modules found in '$ORG' for provider '$PROVIDER'. Create repos matching this naming scheme '$MODULE_NAMING_CONVENTION' to use this extension."
+        fi
+        echo "Setting default provider to $PROVIDER..."
+        tmp=$(mktemp)
+        jq --arg provider "$PROVIDER" '.provider = $provider' "$CONFIG" > "$tmp"
+        mv "$tmp" "$CONFIG"
+        echo "Use the -p/--provider flag to specify a different provider."
+    else
+        echo "Not setting default provider. Use the -p/--provider flag to specify a provider manually."
+    fi
+}
+
+get_provider() {
+    set +u
+    if [[ -z $PROVIDER ]]; then
+        set -u
+        if [[ -f $CONFIG ]]; then
+            PROVIDER=$(jq -r '.provider' "$CONFIG")
+        fi
+    fi
+    [[ "$PROVIDER" == "null" ]] && PROVIDER=''
+    set -u
+    echo "$PROVIDER"
+}
+
+get_org() {
+    set +u
+    if [[ -z $ORG ]]; then
+        set -u
+        if [[ ! -f $CONFIG ]]; then
+            echo "No config file found at $CONFIG"
+            create_config
+        fi
+        ORG="$(jq -r '.organization' "$CONFIG")"
+    fi
+    set -u
+    echo "$ORG"
+}
+
+get_full_repo() {
+    local -r MODULE_NAME="$1"
+    ORG="$(get_org)"
+    PROVIDER="$(get_provider)"
+    FULL_REPO="$ORG/terraform"
+    [[ -n $PROVIDER ]] && FULL_REPO="$FULL_REPO-$PROVIDER"
+    FULL_REPO="$FULL_REPO-$MODULE_NAME-module"
+    echo "$FULL_REPO"
+}
+
+list_modules() {
+    ORG="$(get_org)"
+    PROVIDER="$(get_provider)"
+    if [[ -n "$PROVIDER" ]]; then
+        list_provider_modules "$ORG" "$PROVIDER"
+    else
+        list_tf_modules "$ORG"
+    fi
+}
+
+list_module_latest() {
+    local -r MODULE="$1"
+    FULL_REPO="$(get_full_repo "$MODULE")"
+    gh api -X GET "repos/$FULL_REPO/releases/latest" --jq '.tag_name'
+}
+
+list_module_releases() {
+    local -r MODULE="$1"
+    FULL_REPO="$(get_full_repo "$MODULE")"
+    gh api -X GET "repos/$FULL_REPO/releases" --jq '.[].tag_name'
+}
+
+print_list_usage() {
+cat <<- EOT
+Usage:
+    gh tf-mod ls [-hopc] [<name>]
+
+    flags:
+        -h, --help          Prints help information
+        -v, --version       List the versions available for a module
+
+    global flags:
+        -o, --organization  The GitHub organization to use
+        -p, --provider      The provider to use
+        -c, --config        The path to the config file
+
+    name:
+        The name of the module to list. If not specified, all modules will be listed.
+        If specified without the -v flag, the latest version will be listed.
+EOT
+}
+
+handle_list() {
+    if [[ "$SHOW_HELP" == 'true' ]]; then
+        print_list_usage
+        exit 0
+    fi
+    set +u
+    MODULE="$1"
+    set -u
+    if [[ -n "$MODULE" ]]; then
+        list_module_releases "$MODULE"
+    else
+        list_modules
+    fi
+}
+
+print_add_usage() {
+cat <<- EOT
+Usage:
+    gh tf-mod add <module> [-hvopc] [--path|--version]
+
+    flags:
+        -h, --help          Prints help information
+        --path              The local path to the module
+        -v, --version       The version of the module to install
+
+    global flags:
+        -o, --organization  The GitHub organization to use
+        -p, --provider      The provider to use
+        -c, --config        The path to the config file
+EOT
+}
+
+handle_add() {
+    if [[ "$SHOW_HELP" == 'true' ]]; then
+        print_add_usage
+        exit 0
+    fi
+    : "${1:? 'Missing required argument $MODULE_NAME'}"
+    MODULE_NAME="$1"
+    : "${2:? 'Missing required argument $INSTALL_PATH'}"
+    INSTALL_PATH="$2"
+    : "${3:? 'Missing required argument $VERSION'}"
+    VERSION="$3"
+
+    FULL_REPO="$(get_full_repo "$MODULE_NAME")"
+
+    if gh api "repos/$FULL_REPO/releases/tags/$VERSION" &> /dev/null; then
+        echo "Installing $FULL_REPO:$VERSION to $INSTALL_PATH"
+        mkdir -p "$INSTALL_PATH"
+        trap "rm -f release.tar.gz" EXIT
+        gh -R "$FULL_REPO" release download -p 'release.tar.gz' "$VERSION"
+        tar -xf release.tar.gz -C "$INSTALL_PATH"
+        rm -f release.tar.gz
+    else
+        echo "Failed to find release $FULL_REPO with tag $VERSION in GitHub"
+    fi
+}
+
+handle_help() {
+    print_usage
+}
+
+handle_version() {
+    echo "$VERSION"
+}
+
+case $COMMAND in
+  ls)
+    shift
+    handle_list "$@"
+    ;;
+  add)
+    shift
+    handle_add "$@"
+    ;;
+#   rm)
+#     shift
+#     handle_rm "$@"
+#     ;;
+  help)
+    handle_help
+    ;;
+  version)
+    handle_version
+    ;;
+  *)
+    echo "Unknown command: $COMMAND"
+    echo
+    print_usage
+    exit 1
+    ;;
+esac
