@@ -94,29 +94,13 @@ list_tf_modules() {
     gh api -X GET 'search/repositories' -f q='terraform-module in:name user:'"$ORG" --jq '.items[] | select(.name|startswith("terraform-")) | select(.name|endswith("-module")) | .name'
 }
 
-count_tf_modules() {
-    local -r ORG="$1"
-    list_tf_modules "$ORG" | grep -c ""
-}
-
 list_provider_modules() {
     local -r ORG="$1"
     local -r PROVIDER="$2"
     gh api -X GET 'search/repositories' -f q='terraform-'"$PROVIDER"'-module in:name user:'"$ORG" --jq '.items[] | select(.name|startswith("terraform-'"$PROVIDER"'-")) | select(.name|endswith("-module")) | .name'
-
-}
-
-count_provider_modules() {
-    local -r ORG="$1"
-    local -r PROVIDER="$2"
-    list_tf_modules "$ORG" "$PROVIDER" | grep -c ""
 }
 
 create_config() {
-    echo "Creating config..."
-    echo "The file will be created in $CONFIG. Use the -c/--config to specify a different config location."
-    echo "For gh-tf-mod to work, you need a GitHub organization with Terraform modules in repos with the following naming scheme:"
-    echo "$MODULE_NAMING_CONVENTION"
     read -rp "Which organization would you like to use with gh-tf-mod? Leave blank to use your personal GitHub user: " ORG
 
     if [[ -z "$ORG" ]]; then
@@ -127,31 +111,12 @@ create_config() {
     mkdir -p "$(dirname "$CONFIG")"
     echo "{ \"organization\": \"$ORG\" }" | jq '.' > "$CONFIG"
 
-    tf_module_count="$(count_tf_modules "$ORG")"
-    if [[ "$tf_module_count" -gt 0 ]]; then
-        echo "Found $tf_module_count Terraform modules in $ORG."
-        echo "If you need to overwrite the organization used in a command, use the -o/--organization flag."
-    else
-        echo "No Terraform modules found in '$ORG'. Create repos matching this naming scheme '$MODULE_NAMING_CONVENTION' to use this extension."
-    fi
-
-    echo "Would you like to set a default provider? This provider can be overwritten with the -p/--provider flag."
-
     read -rp "Would you like to set a default provider? Leave blank to avoid setting a default provider: " PROVIDER
 
     if [[ -n $PROVIDER ]]; then
-        provider_module_count="$(count_provider_modules "$ORG" "$PROVIDER")"
-        if [[ "$provider_module_count" -gt 0 ]]; then
-            echo "Found $provider_module_count Terraform modules in $ORG for provider '$PROVIDER'."
-            echo "If you need to overwrite the provider used in a command, use the -p/--provider flag."
-        else
-            echo "No Terraform modules found in '$ORG' for provider '$PROVIDER'. Create repos matching this naming scheme '$MODULE_NAMING_CONVENTION' to use this extension."
-        fi
-        echo "Setting default provider to $PROVIDER..."
         tmp=$(mktemp)
         jq --arg provider "$PROVIDER" '.provider = $provider' "$CONFIG" > "$tmp"
         mv "$tmp" "$CONFIG"
-        echo "Use the -p/--provider flag to specify a different provider."
     else
         echo "Not setting default provider. Use the -p/--provider flag to specify a provider manually."
     fi
@@ -165,23 +130,24 @@ get_provider() {
             PROVIDER=$(jq -r '.provider' "$CONFIG")
         fi
     fi
+    set +u
     [[ "$PROVIDER" == "null" ]] && PROVIDER=''
-    set -u
     echo "$PROVIDER"
+    set -u
 }
 
 get_org() {
     set +u
     if [[ -z $ORG ]]; then
         set -u
-        if [[ ! -f $CONFIG ]]; then
-            echo "No config file found at $CONFIG"
-            create_config
+        if [[ -f $CONFIG ]]; then
+            jq -r '.organization' "$CONFIG"
+        else
+            gh api user --jq '.login'
         fi
-        ORG="$(jq -r '.organization' "$CONFIG")"
+    else
+        echo "$ORG"
     fi
-    set -u
-    echo "$ORG"
 }
 
 get_full_repo() {
@@ -294,6 +260,15 @@ handle_add() {
     fi
 }
 
+handle_init() {
+    if [[ ! -f $CONFIG ]]; then
+        echo "No config file found at $CONFIG. Creating..."
+        create_config
+    else
+        echo "Config file found at $CONFIG. Remove or select alternate config location to continue."
+    fi
+}
+
 handle_help() {
     print_usage
 }
@@ -303,6 +278,10 @@ handle_version() {
 }
 
 case $COMMAND in
+  init)
+    shift
+    handle_init
+    ;;
   ls)
     shift
     handle_list "$@"
@@ -313,6 +292,7 @@ case $COMMAND in
     ;;
 #   rm)
 #     shift
+#     handle_init
 #     handle_rm "$@"
 #     ;;
   help)
