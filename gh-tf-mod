@@ -3,7 +3,6 @@ set -euo pipefail
 
 VERSION='0.0.1'
 
-MODULE_NAMING_CONVENTION='<organization>/terraform-<provider>-<name>-module'
 CONFIG="$HOME/.config/gh-tf-mod/config.json"
 SHOW_HELP=false
 
@@ -84,6 +83,7 @@ Usage:
         ls
         add
         rm
+        config
         version
         help
 EOT
@@ -260,10 +260,31 @@ handle_add() {
     fi
 }
 
-handle_init() {
+print_config_usage() {
+cat <<- EOT
+Usage:
+    gh tf-mod config [-hvopc]
+
+    flags:
+        -h, --help          Prints help information
+
+    global flags:
+        -o, --organization  The GitHub organization to use
+        -p, --provider      The provider to use
+        -c, --config        The path to the config file
+EOT
+}
+
+handle_config() {
+    if [[ "$SHOW_HELP" == 'true' ]]; then
+        print_add_usage
+        exit 0
+    fi
     if [[ ! -f $CONFIG ]]; then
         echo "No config file found at $CONFIG. Creating..."
-        create_config
+        set +u
+        create_config "$ORG" "$PROVIDER"
+        set -u
     else
         echo "Config file found at $CONFIG. Remove or select alternate config location to continue."
     fi
@@ -278,9 +299,9 @@ handle_version() {
 }
 
 case $COMMAND in
-  init)
+  config)
     shift
-    handle_init
+    handle_config
     ;;
   ls)
     shift
