@@ -105,7 +105,10 @@ list_provider_modules() {
 }
 
 create_config() {
-    read -rp "Which organization would you like to use with gh-tf-mod? Leave blank to use your personal GitHub user: " ORG
+    local ORG="$1"
+    local PROVIDER="$2"
+
+    [[ -n $ORG ]] || read -rp "Which organization would you like to use with gh-tf-mod? Leave blank to use your personal GitHub user: " ORG
 
     if [[ -z "$ORG" ]]; then
         ORG=$(gh api user --jq '.login')
@@ -115,7 +118,8 @@ create_config() {
     mkdir -p "$(dirname "$CONFIG")"
     echo "{ \"organization\": \"$ORG\" }" | jq '.' > "$CONFIG"
 
-    read -rp "Would you like to set a default provider? Leave blank to avoid setting a default provider: " PROVIDER
+    
+    [[ -n $PROVIDER ]] || read -rp "Would you like to set a default provider? Leave blank to avoid setting a default provider: " PROVIDER
 
     if [[ -n $PROVIDER ]]; then
         tmp=$(mktemp)
