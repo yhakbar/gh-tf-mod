@@ -44,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       PROVIDER="$2"
       shift 2
       ;;
+    --path)
+      INSTALL_PATH="$2"
+      shift 2
+      ;;
     -*)
       echo "Unknown option $1"
       exit 1
@@ -160,6 +164,36 @@ get_full_repo() {
     echo "$FULL_REPO"
 }
 
+get_version() {
+    local -r MODULE_NAME="$1"
+    # Check if version is specified, else use latest
+}
+
+get_install_path() {
+    set +u
+    if [[ -z $INSTALL_PATH ]]; then
+        set -u
+        if GIT_ROOT="$(git rev-parse --show-toplevel)"; then
+            if [[ -f "$GIT_ROOT/submodules" ]]; then
+                INSTALL_PATH="$GIT_ROOT/submodules"
+            elif [[ -f "$GIT_ROOT/terragrunt/modules" ]]; then
+                INSTALL_PATH="$GIT_ROOT/terragrunt/modules"
+            else
+                INSTALL_PATH="$GIT_ROOT/terraform/modules"
+            fi
+        else
+            if [[ -f "submodules" ]]; then
+                INSTALL_PATH="submodules"
+            elif [[ -f "terragrunt/modules" ]]; then
+                INSTALL_PATH="terragrunt/modules"
+            else
+                INSTALL_PATH="terraform/modules"
+            fi
+        fi
+    fi
+    echo "$INSTALL_PATH"
+}
+
 list_modules() {
     ORG="$(get_org)"
     PROVIDER="$(get_provider)"
@@ -241,10 +275,9 @@ handle_add() {
     fi
     : "${1:? 'Missing required argument $MODULE_NAME'}"
     MODULE_NAME="$1"
-    : "${2:? 'Missing required argument $INSTALL_PATH'}"
-    INSTALL_PATH="$2"
-    : "${3:? 'Missing required argument $VERSION'}"
-    VERSION="$3"
+    : "${2:? 'Missing required argument $VERSION'}"
+    VERSION="$2"
+    INSTALL_PATH="$(get_install_path)"
 
     FULL_REPO="$(get_full_repo "$MODULE_NAME")"
 
