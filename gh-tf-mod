@@ -4,6 +4,7 @@ set -euo pipefail
 GH_TF_MOD_VERSION='0.0.1'
 
 CONFIG="$HOME/.config/gh-tf-mod/config.json"
+CACHE_ROOT="$HOME/.cache/gh-tf-mod"
 SHOW_HELP=false
 
 check_for_required_deps() {
@@ -47,6 +48,10 @@ while [[ $# -gt 0 ]]; do
     --path)
       INSTALL_PATH="$2"
       shift 2
+      ;;
+    --no-cache)
+      NO_CACHE=true
+      shift
       ;;
     -*)
       echo "Unknown option $1"
@@ -169,24 +174,25 @@ get_full_repo() {
 }
 
 get_install_path() {
+    local -r MODULE_NAME="$1"
     set +u
     if [[ -z $INSTALL_PATH ]]; then
         set -u
         if GIT_ROOT="$(git rev-parse --show-toplevel)"; then
             if [[ -f "$GIT_ROOT/submodules" ]]; then
-                INSTALL_PATH="$GIT_ROOT/submodules"
+                INSTALL_PATH="$GIT_ROOT/submodules/$MODULE_NAME"
             elif [[ -f "$GIT_ROOT/terragrunt/modules" ]]; then
-                INSTALL_PATH="$GIT_ROOT/terragrunt/modules"
+                INSTALL_PATH="$GIT_ROOT/terragrunt/modules/$MODULE_NAME"
             else
-                INSTALL_PATH="$GIT_ROOT/terraform/modules"
+                INSTALL_PATH="$GIT_ROOT/terraform/modules/$MODULE_NAME"
             fi
         else
             if [[ -f "submodules" ]]; then
-                INSTALL_PATH="submodules"
+                INSTALL_PATH="submodules/$MODULE_NAME"
             elif [[ -f "terragrunt/modules" ]]; then
-                INSTALL_PATH="terragrunt/modules"
+                INSTALL_PATH="terragrunt/modules/$MODULE_NAME"
             else
-                INSTALL_PATH="terraform/modules"
+                INSTALL_PATH="terraform/modules/$MODULE_NAME"
             fi
         fi
     fi
@@ -225,6 +231,28 @@ get_version() {
         list_module_latest "$MODULE"
     fi
     set -u
+}
+
+install_module() {
+    local -r FULL_REPO="$1"
+    local -r VERSION="$2"
+    local -r INSTALL_PATH="$3"
+
+    echo "Installing $FULL_REPO:$VERSION to $INSTALL_PATH"
+    mkdir -p "$INSTALL_PATH"
+
+    if [[ $NO_CACHE == 'true' ]]; then
+        tmpdir="$(mktemp -d)"
+        trap "rm -f $tmpdir/release.tar.gz" EXIT
+        gh -R "$FULL_REPO" release download -p "$tmpdir/release.tar.gz" "$VERSION"
+        tar -xf "$tmpdir/release.tar.gz" -C "$INSTALL_PATH"
+        rm -f "$tmpdir/release.tar.gz"
+    elif [[ -f $CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz ]]; then
+        tar -xf "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" -C "$INSTALL_PATH"
+    else
+        gh -R "$FULL_REPO" release download -p "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" "$VERSION"
+        tar -xf "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" -C "$INSTALL_PATH"
+    fi
 }
 
 print_list_usage() {
@@ -287,17 +315,12 @@ handle_add() {
     : "${1:? 'Missing required argument $MODULE_NAME'}"
     MODULE_NAME="$1"
     VERSION="$(get_version "$MODULE_NAME")"
-    INSTALL_PATH="$(get_install_path)"
+    INSTALL_PATH="$(get_install_path "$MODULE_NAME")"
 
     FULL_REPO="$(get_full_repo "$MODULE_NAME")"
 
     if gh api "repos/$FULL_REPO/releases/tags/$VERSION" &> /dev/null; then
-        echo "Installing $FULL_REPO:$VERSION to $INSTALL_PATH"
-        mkdir -p "$INSTALL_PATH"
-        trap "rm -f release.tar.gz" EXIT
-        gh -R "$FULL_REPO" release download -p 'release.tar.gz' "$VERSION"
-        tar -xf release.tar.gz -C "$INSTALL_PATH"
-        rm -f release.tar.gz
+        install_module "$FULL_REPO" "$VERSION" "$INSTALL_PATH"
     else
         echo "Failed to find release $FULL_REPO with tag $VERSION in GitHub"
     fi
@@ -356,7 +379,6 @@ case $COMMAND in
     ;;
 #   rm)
 #     shift
-#     handle_init
 #     handle_rm "$@"
 #     ;;
   help)
