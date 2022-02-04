@@ -284,9 +284,7 @@ handle_add() {
     fi
     : "${1:? 'Missing required argument $MODULE_NAME'}"
     MODULE_NAME="$1"
-    : "${2:? 'Missing required argument $VERSION'}"
-    VERSION="$2"
-    # VERSION="$(get_version "$MODULE_NAME")"
+    VERSION="$(get_version "$MODULE_NAME")"
     INSTALL_PATH="$(get_install_path)"
 
     FULL_REPO="$(get_full_repo "$MODULE_NAME")"
