@@ -3,9 +3,13 @@ set -euo pipefail
 
 GH_TF_MOD_VERSION='0.0.1'
 
+# Default filesystem values
 CONFIG="$HOME/.config/gh-tf-mod/config.json"
 CACHE_ROOT="$HOME/.cache/gh-tf-mod"
+
+# Defaults
 SHOW_HELP=false
+NO_CACHE=false
 
 check_for_required_deps() {
     if ! command -v jq >/dev/null 2>&1; then
@@ -238,19 +242,18 @@ install_module() {
     local -r VERSION="$2"
     local -r INSTALL_PATH="$3"
 
-    echo "Installing $FULL_REPO:$VERSION to $INSTALL_PATH"
     mkdir -p "$INSTALL_PATH"
 
     if [[ $NO_CACHE == 'true' ]]; then
         tmpdir="$(mktemp -d)"
         trap "rm -f $tmpdir/release.tar.gz" EXIT
-        gh -R "$FULL_REPO" release download -p "$tmpdir/release.tar.gz" "$VERSION"
+        gh -R "$FULL_REPO" release download -p 'release.tar.gz' -D "$tmpdir" "$VERSION"
         tar -xf "$tmpdir/release.tar.gz" -C "$INSTALL_PATH"
         rm -f "$tmpdir/release.tar.gz"
     elif [[ -f $CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz ]]; then
         tar -xf "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" -C "$INSTALL_PATH"
     else
-        gh -R "$FULL_REPO" release download -p "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" "$VERSION"
+        gh -R "$FULL_REPO" release download -D "$CACHE_ROOT/releases/$FULL_REPO/$VERSION" -p 'release.tar.gz' "$VERSION"
         tar -xf "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" -C "$INSTALL_PATH"
     fi
 }
