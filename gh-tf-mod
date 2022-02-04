@@ -164,11 +164,6 @@ get_full_repo() {
     echo "$FULL_REPO"
 }
 
-get_version() {
-    local -r MODULE_NAME="$1"
-    # Check if version is specified, else use latest
-}
-
 get_install_path() {
     set +u
     if [[ -z $INSTALL_PATH ]]; then
@@ -218,11 +213,14 @@ list_module_releases() {
 
 get_version() {
     local -r MODULE="$1"
+    set +u
     if [[ -n $VERSION ]]; then
+        set -u
         echo "$VERSION"
     else
         list_module_latest "$MODULE"
     fi
+    set -u
 }
 
 print_list_usage() {
