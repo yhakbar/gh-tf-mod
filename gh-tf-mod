@@ -172,7 +172,8 @@ get_full_repo() {
     ORG="$(get_org)"
     PROVIDER="$(get_provider)"
     FULL_REPO="$ORG/terraform"
-    [[ -n $PROVIDER ]] && FULL_REPO="$FULL_REPO-$PROVIDER"
+    # If the provider is set, and it's not already the beginning of the module name, add it
+    [[ -n $PROVIDER ]] && [[ ! "$MODULE_NAME" =~ "$PROVIDER".* ]] && FULL_REPO="$FULL_REPO-$PROVIDER"
     FULL_REPO="$FULL_REPO-$MODULE_NAME-module"
     echo "$FULL_REPO"
 }
