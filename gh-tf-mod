@@ -10,6 +10,8 @@ CACHE_ROOT="$HOME/.cache/gh-tf-mod"
 # Defaults
 SHOW_HELP=false
 NO_CACHE=false
+FORCE=false
+YES_FLAG=false
 
 check_for_required_deps() {
     if ! command -v jq >/dev/null 2>&1; then
@@ -55,6 +57,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-cache)
       NO_CACHE=true
+      shift
+      ;;
+    --force)
+      FORCE=true
+      shift
+      ;;
+    -y|--yes)
+      YES_FLAG=true
       shift
       ;;
     -*)
@@ -183,7 +193,7 @@ get_install_path() {
     set +u
     if [[ -z $INSTALL_PATH ]]; then
         set -u
-        if GIT_ROOT="$(git rev-parse --show-toplevel)"; then
+        if GIT_ROOT="$(git rev-parse --show-toplevel 2> /dev/null)"; then
             if [[ -f "$GIT_ROOT/submodules" ]]; then
                 INSTALL_PATH="$GIT_ROOT/submodules/$MODULE_NAME"
             elif [[ -f "$GIT_ROOT/terragrunt/modules" ]]; then
@@ -256,6 +266,91 @@ install_module() {
     else
         gh -R "$FULL_REPO" release download -D "$CACHE_ROOT/releases/$FULL_REPO/$VERSION" -p 'release.tar.gz' "$VERSION"
         tar -xf "$CACHE_ROOT/releases/$FULL_REPO/$VERSION/release.tar.gz" -C "$INSTALL_PATH"
+    fi
+}
+
+print_rm_usage() {
+cat <<- EOT
+Usage:
+    gh tf-mod rm [-hfy] [<name>]
+
+    flags:
+        -h, --help          Prints help information.
+        -f, --force         Force removal of a specific module, even if used.
+        -y, --yes           Skip confirmation prompt.
+
+    global flags:
+        -p, --provider      The provider to target.
+
+    name:
+        The name of the module to remove. If not specified, every unused module will be removed.
+
+        By default, a module in use cannot be deleted, and confirmation is required to delete a module.
+        Use the -f/--force flag to force removal of a module that is in use, and the -y/--yes flag to skip the confirmation prompt.
+EOT
+}
+
+is_module_used() {
+    local -r MODULE="$1"
+    local -r INSTALL_PATH="$2"
+    GIT_ROOT="$(git rev-parse --show-toplevel 2> /dev/null)" && pushd "$GIT_ROOT" > /dev/null
+    if grep -rn "source[^=]*=.*\/$MODULE\""; then
+        echo "Module $MODULE is used at $INSTALL_PATH"
+        return 0
+    else
+        return 1
+    fi
+}
+
+confirm_module_deletion() {
+    local -r MODULE="$1"
+    if [[ "$YES_FLAG" == 'true' ]]; then
+        return 0
+    else
+        read -rp "Are you sure you would like to delete the module $MODULE? Type 'yes' to confirm. " CONFIRMATION
+        [[ $CONFIRMATION == 'yes' ]] && return 0
+    fi
+    return 1
+}
+
+delete_module_if_unused() {
+    local -r MODULE="$1"
+    local -r INSTALL_PATH="$2"
+    local -r FORCE="$3"
+    if [[ -d "$INSTALL_PATH" ]]; then
+        if USED_MODULE_LOCATIONS="$(is_module_used "$MODULE" "$INSTALL_PATH")" && [[ "$FORCE" != 'true' ]]; then
+            echo "Module $MODULE is used at $INSTALL_PATH. Use --force to remove it anyway."
+            echo "$USED_MODULE_LOCATIONS"
+            exit 1
+        else
+            if confirm_module_deletion "$MODULE"; then
+                rm -rf "$INSTALL_PATH"
+                echo "Removed $MODULE"
+            else
+                echo "Module $MODULE not removed."
+            fi
+        fi
+    else
+        echo "No module named $MODULE found"
+        exit 1
+    fi
+}
+
+delete_all_unused_modules() {
+    local -r INSTALL_PATH="$1"
+    pushd "$INSTALL_PATH" > /dev/null
+    for MODULE in *; do
+        delete_module_if_unused "$MODULE" "$INSTALL_PATH" 'false'
+    done
+}
+
+handle_rm() {
+    local -r MODULE="${1:-}"
+    local -r INSTALL_PATH="$(get_install_path "$MODULE")"
+    if [[ -n "$MODULE" ]]; then
+        delete_module_if_unused "$MODULE" "$INSTALL_PATH" "$FORCE"
+    else
+        delete_all_unused_modules "$INSTALL_PATH"
     fi
 }
 
@@ -381,10 +476,10 @@ case $COMMAND in
     shift
     handle_add "$@"
     ;;
-#   rm)
-#     shift
-#     handle_rm "$@"
-#     ;;
+  rm)
+    shift
+    handle_rm "$@"
+    ;;
   help)
     handle_help
     ;;
