@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 tag=$(git describe --tags --abbrev=0)
 
 prerelease=""

@@ -1,3 +1,5 @@
 /target
 .config/gh-tf-mod.yaml
 .vscode
+dist
+gh-tf-mod
