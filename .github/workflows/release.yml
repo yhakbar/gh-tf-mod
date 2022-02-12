@@ -18,13 +18,14 @@ jobs:
           target: x86_64-unknown-linux-musl
           cross: false
           platform: linux-amd64
-        - build: aarch64
-          os: ubuntu-latest
-          rust: stable
-          target: aarch64-unknown-linux-gnu
-          linker: gcc-aarch64-linux-gnu
-          cross: true
-          platform: linux-arm64
+        # Broken for now
+        # - build: aarch64
+        #   os: ubuntu-latest
+        #   rust: stable
+        #   target: aarch64-unknown-linux-gnu
+        #   linker: gcc-aarch64-linux-gnu
+        #   cross: true
+        #   platform: linux-arm64
         - build: macos
           os: macos-latest
           rust: stable
