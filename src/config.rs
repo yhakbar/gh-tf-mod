@@ -1,12 +1,13 @@
 use crate::gh::get_logged_in_user;
+use merge::Merge;
 use serde_derive::{Deserialize, Serialize};
 use std::fs::{create_dir_all, metadata, read_to_string, write};
 use std::io::stdin;
 use std::path::PathBuf;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize, Merge)]
 pub struct Config {
-    pub org: String,
+    pub org: Option<String>,
     pub provider: Option<String>,
 }
 
@@ -14,7 +15,7 @@ impl Config {
     pub fn new(org: Option<String>, provider: Option<String>) -> Config {
         let unwrapped_org = org.unwrap_or(get_logged_in_user());
         Config {
-            org: unwrapped_org,
+            org: Some(unwrapped_org),
             provider: provider,
         }
     }
@@ -46,13 +47,27 @@ impl Config {
     pub fn load(org: &Option<String>, provider: &Option<String>) -> Config {
         let config_path = PathBuf::from(".config");
         let config_file = &config_path.join("gh-tf-mod.yaml");
+        let mut loaded_config = Config::default();
         if metadata(&config_path).is_ok() {
             let config_string = read_to_string(config_file).expect("Could not read config");
-            let config: Config =
+            loaded_config =
                 serde_yaml::from_str(&config_string).expect("Could not deserialize config");
-            config
+        }
+
+        let config_org = if org.is_some() {
+            org.clone()
         } else {
-            Config::new(org.clone(), provider.clone())
+            loaded_config.org.clone()
+        };
+        let config_provider = if provider.is_some() {
+            provider.clone()
+        } else {
+            loaded_config.provider.clone()
+        };
+
+        Config {
+            org: config_org,
+            provider: config_provider,
         }
     }
 }

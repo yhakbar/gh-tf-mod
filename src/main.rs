@@ -58,8 +58,8 @@ fn main() -> std::io::Result<()> {
             }
             None => {
                 let config = Config::load(&org, &provider);
-                let list_org = &org.unwrap_or(config.org);
-                let list_modules_response = gh::list_modules(list_org.to_string());
+                let list_org = &org.unwrap_or(config.org.unwrap());
+                let list_modules_response = gh::list_modules(list_org.to_string()).unwrap();
                 if json {
                     println!("{}", serde_json::to_string(&list_modules_response)?);
                 } else {
