@@ -1,9 +1,8 @@
 use crate::gh::{ListModuleResponse, ListModuleResponsePageInfo};
 use prettytable::{color, Attr, Cell, Row, Table};
 
-fn add_header(table: &mut Table) {
-    // TODO: Add no-color flag
-    let use_color = true;
+fn add_header(table: &mut Table, no_color: bool) {
+    let use_color = !no_color;
 
     let mut name_cell = Cell::new("Name").with_style(Attr::Bold);
     name_cell = if use_color {
@@ -41,9 +40,9 @@ fn add_footer(
     total_count: u64,
     filtered_repos: u64,
     page_info: &ListModuleResponsePageInfo,
+    no_color: bool,
 ) {
-    // TODO: Add no-color flag
-    let use_color = true;
+    let use_color = !no_color;
 
     let total_count_text = format!("{}", total_count);
     let mut total_count_cell = Cell::new(&total_count_text).with_style(Attr::Bold);
@@ -149,9 +148,9 @@ fn add_footer(
     ]));
 }
 
-pub fn print_modules_table(list_modules_response: ListModuleResponse) {
+pub fn print_modules_table(list_modules_response: ListModuleResponse, no_color: bool) {
     let mut table = Table::new();
-    add_header(&mut table);
+    add_header(&mut table, no_color);
     for module in list_modules_response.data.search.nodes {
         let mut row = Row::empty();
         row.add_cell(Cell::new(&module.name));
@@ -182,6 +181,7 @@ pub fn print_modules_table(list_modules_response: ListModuleResponse) {
             .filtered_repository_count
             .unwrap_or(0),
         &list_modules_response.data.search.page_info,
+        no_color,
     );
     table.printstd();
 }

@@ -73,9 +73,23 @@ pub struct ListModuleResponse {
     pub data: ListModuleResponseData,
 }
 
-pub fn list_modules(org: String) -> Result<ListModuleResponse, std::io::Error> {
+pub fn list_modules(
+    org: String,
+    first: Option<usize>,
+    after: Option<String>,
+) -> Result<ListModuleResponse, std::io::Error> {
+    let query_first = if first.is_some() {
+        format!("{}", first.unwrap())
+    } else {
+        "30".to_string()
+    };
+    let query_after = if after.is_some() {
+        format!("\"{}\"", after.unwrap())
+    } else {
+        "null".to_string()
+    };
     let query = format!("query {{
-        search(query: \"terraform-module in:name user:{}\", type: REPOSITORY, first: 30, after: null) {{
+        search(query: \"terraform-module in:name user:{}\", type: REPOSITORY, first: {}, after: {}) {{
             pageInfo {{
                 hasNextPage
                 endCursor
@@ -102,7 +116,7 @@ pub fn list_modules(org: String) -> Result<ListModuleResponse, std::io::Error> {
                 }}
             }}
         }}
-    }}", org);
+    }}", org, query_first, query_after);
 
     let query_parameter = format!("query={}", &query);
 
