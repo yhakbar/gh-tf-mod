@@ -16,68 +16,73 @@ pub fn get_logged_in_user() -> String {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ListModuleResponsePageInfo {
+pub struct ListModulesResponsePageInfo {
     pub has_next_page: bool,
-    pub end_cursor: String,
+    pub end_cursor: Option<String>,
     pub has_previous_page: bool,
-    pub start_cursor: String,
+    pub start_cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ListModuleResponseRelease {
+pub struct ListModulesResponseRelease {
     pub tag_name: String,
     pub published_at: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListModuleResponseReleases {
-    pub nodes: Vec<ListModuleResponseRelease>,
+pub struct ListModulesResponseReleases {
+    pub nodes: Vec<ListModulesResponseRelease>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListModuleResponseRef {
+pub struct ListModulesResponseRef {
     pub name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListModulesResponseRefs {
-    pub nodes: Vec<ListModuleResponseRef>,
+    pub nodes: Vec<ListModulesResponseRef>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListModuleResponseNode {
+pub struct ListModulesResponseNode {
     pub name: String,
     pub description: Option<String>,
     pub url: String,
-    pub releases: ListModuleResponseReleases,
+    pub releases: ListModulesResponseReleases,
     pub refs: ListModulesResponseRefs,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ListModuleResponseSearch {
-    pub page_info: ListModuleResponsePageInfo,
+pub struct ListModulesResponseSearch {
+    pub page_info: ListModulesResponsePageInfo,
     pub repository_count: u64,
     pub filtered_repository_count: Option<u64>,
-    pub nodes: Vec<ListModuleResponseNode>,
+    pub nodes: Vec<ListModulesResponseNode>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListModuleResponseData {
-    pub search: ListModuleResponseSearch,
+pub struct ListModulesResponseData {
+    pub search: ListModulesResponseSearch,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListModuleResponse {
-    pub data: ListModuleResponseData,
+pub struct ListModulesResponse {
+    pub data: ListModulesResponseData,
 }
 
 pub fn list_modules(
     org: String,
+    provider: Option<String>,
     first: Option<usize>,
     after: Option<String>,
-) -> Result<ListModuleResponse, std::io::Error> {
+) -> Result<ListModulesResponse, std::io::Error> {
+    let query_provider = match provider {
+        Some(ref provider) => format!("{}-", provider),
+        None => "".to_string(),
+    };
     let query_first = if first.is_some() {
         format!("{}", first.unwrap())
     } else {
@@ -89,7 +94,7 @@ pub fn list_modules(
         "null".to_string()
     };
     let query = format!("query {{
-        search(query: \"terraform-module in:name user:{}\", type: REPOSITORY, first: {}, after: {}) {{
+        search(query: \"terraform-{}module in:name user:{}\", type: REPOSITORY, first: {}, after: {}) {{
             pageInfo {{
                 hasNextPage
                 endCursor
@@ -116,7 +121,7 @@ pub fn list_modules(
                 }}
             }}
         }}
-    }}", org, query_first, query_after);
+    }}", query_provider, org, query_first, query_after);
 
     let query_parameter = format!("query={}", &query);
 
@@ -133,9 +138,15 @@ pub fn list_modules(
         .to_string();
 
     if modules.status.code() == Some(0) {
-        let mut list_module_response: ListModuleResponse =
+        let mut list_module_response: ListModulesResponse =
             serde_json::from_str(&listed_modules_output).expect("Could not parse modules");
-        let re = Regex::new(r"terraform-.*-module").unwrap();
+        let regex_provider = if provider.is_some() {
+            format!("{}-", &provider.unwrap())
+        } else {
+            "".to_string()
+        };
+        let regex_pattern = format!("terraform-{}.*-module", regex_provider);
+        let re = Regex::new(&regex_pattern).unwrap();
         let pre_sift_len = list_module_response.data.search.nodes.len() as u64;
         list_module_response
             .data
@@ -154,5 +165,135 @@ pub fn list_modules(
             .trim()
             .to_string();
         panic!("{}", listed_modules_stderr);
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseReleaseNode {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseRefNode {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseRelease {
+    pub node: ListModuleResponseReleaseNode,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseRef {
+    pub node: ListModuleResponseRefNode,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseReleases {
+    pub edges: Vec<ListModuleResponseRelease>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseRefs {
+    pub edges: Vec<ListModuleResponseRef>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseRepository {
+    pub name: String,
+    pub description: Option<String>,
+    pub url: String,
+    pub releases: ListModuleResponseReleases,
+    pub refs: ListModuleResponseRefs,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseData {
+    pub repository: ListModuleResponseRepository,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponse {
+    pub data: ListModuleResponseData,
+}
+
+pub fn list_module(
+    org: String,
+    provider: Option<String>,
+    module: String,
+    first: Option<usize>,
+    after: Option<String>,
+) -> Result<ListModuleResponse, std::io::Error> {
+    let query_provider = match provider {
+        Some(ref provider) => format!("{}-", provider),
+        None => "".to_string(),
+    };
+
+    let query_module = format!("terraform-{}{}-module", query_provider, module);
+
+    let query_first = if first.is_some() {
+        format!("{}", first.unwrap())
+    } else {
+        "30".to_string()
+    };
+    let query_after = if after.is_some() {
+        format!("\"{}\"", after.unwrap())
+    } else {
+        "null".to_string()
+    };
+
+    let query = format!(
+        "{{
+        repository(name: \"{}\", owner: \"{}\") {{
+            name
+            description
+            url
+            releases(first: {}, after: {}) {{
+                edges {{
+                    node {{
+                        name
+                    }}
+                }}
+            }}
+            refs(refPrefix: \"refs/tags/\", first: {}, after: {}) {{
+                edges {{
+                    node {{
+                        name
+                    }}
+                }}
+            }}
+        }}
+    }}",
+        query_module, org, query_first, query_after, query_first, query_after
+    );
+
+    let query_parameter = format!("query={}", &query);
+
+    let module = Command::new("gh")
+        .args(&["api", "graphql", "-f", &query_parameter])
+        .output()
+        .expect("Could not list module");
+
+    let stdout = module.stdout;
+
+    let listed_module_output = String::from_utf8(stdout)
+        .expect("Could not parse module")
+        .trim()
+        .to_string();
+
+    if module.status.code() == Some(0) {
+        let list_module_response: ListModuleResponse =
+            serde_json::from_str(&listed_module_output).expect("Could not parse module");
+        Ok(list_module_response)
+    } else {
+        let stderr = module.stderr;
+        let listed_module_stderr = String::from_utf8(stderr)
+            .expect("Could not parse module")
+            .trim()
+            .to_string();
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            listed_module_stderr,
+        ));
     }
 }

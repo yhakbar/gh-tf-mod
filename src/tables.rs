@@ -1,4 +1,4 @@
-use crate::gh::{ListModuleResponse, ListModuleResponsePageInfo};
+use crate::gh::{ListModulesResponse, ListModulesResponsePageInfo};
 use prettytable::{color, Attr, Cell, Row, Table};
 
 fn add_header(table: &mut Table, no_color: bool) {
@@ -39,7 +39,7 @@ fn add_footer(
     table: &mut Table,
     total_count: u64,
     filtered_repos: u64,
-    page_info: &ListModuleResponsePageInfo,
+    page_info: &ListModulesResponsePageInfo,
     no_color: bool,
 ) {
     let use_color = !no_color;
@@ -68,26 +68,26 @@ fn add_footer(
         Cell::new("End Cursor"),
     ]));
 
-    let mut start_cursor_cell = Cell::new(&page_info.start_cursor);
-    start_cursor_cell = if use_color {
+    let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
+    let start_cursor_cell = if use_color {
         if page_info.has_previous_page {
-            start_cursor_cell.with_style(Attr::ForegroundColor(color::GREEN))
+            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
         } else {
-            start_cursor_cell.with_style(Attr::ForegroundColor(color::RED))
+            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::RED))
         }
     } else {
-        start_cursor_cell
+        Cell::new(&end_cursor)
     };
 
-    let mut end_cursor_cell = Cell::new(&page_info.end_cursor);
-    end_cursor_cell = if use_color {
+    let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
+    let end_cursor_cell = if use_color {
         if page_info.has_next_page {
-            end_cursor_cell.with_style(Attr::ForegroundColor(color::GREEN))
+            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
         } else {
-            end_cursor_cell.with_style(Attr::ForegroundColor(color::RED))
+            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::RED))
         }
     } else {
-        end_cursor_cell
+        Cell::new(&end_cursor)
     };
 
     paging_info_table.add_row(Row::new(vec![
@@ -148,7 +148,7 @@ fn add_footer(
     ]));
 }
 
-pub fn print_modules_table(list_modules_response: ListModuleResponse, no_color: bool) {
+pub fn print_modules_table(list_modules_response: ListModulesResponse, no_color: bool) {
     let mut table = Table::new();
     add_header(&mut table, no_color);
     for module in list_modules_response.data.search.nodes {
