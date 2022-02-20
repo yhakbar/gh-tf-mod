@@ -326,9 +326,9 @@ pub fn list_module(
             .expect("Could not parse module")
             .trim()
             .to_string();
-        return Err(std::io::Error::new(
+        Err(std::io::Error::new(
             std::io::ErrorKind::Other,
             listed_module_stderr,
-        ));
+        ))
     }
 }

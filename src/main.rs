@@ -24,7 +24,7 @@ enum Commands {
         #[structopt(short, long)]
         provider: Option<String>,
     },
-    /// List avaialable modules.
+    /// List available modules.
     #[structopt(name = "ls")]
     List {
         /// Module to inspect.
