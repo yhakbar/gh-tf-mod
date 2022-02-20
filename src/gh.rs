@@ -21,7 +21,6 @@ pub struct ListModulesResponsePageInfo {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
     pub has_previous_page: bool,
-    pub start_cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -101,7 +100,6 @@ pub fn list_modules(
                 hasNextPage
                 endCursor
                 hasPreviousPage
-                startCursor
             }}
             repositoryCount
             nodes {{
@@ -205,7 +203,6 @@ pub struct ListModuleResponseReleasesPageInfo {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
     pub has_previous_page: bool,
-    pub start_cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -214,7 +211,6 @@ pub struct ListModuleResponseRefsPageInfo {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
     pub has_previous_page: bool,
-    pub start_cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -296,7 +292,6 @@ pub fn list_module(
                     pageInfo {{
                         endCursor
                         hasNextPage
-                        startCursor
                         hasPreviousPage
                     }}
                     totalCount
@@ -313,7 +308,6 @@ pub fn list_module(
                     pageInfo {{
                         endCursor
                         hasNextPage
-                        startCursor
                         hasPreviousPage
                     }}
                     totalCount

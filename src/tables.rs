@@ -94,20 +94,8 @@ fn add_modules_footer(
     paging_info_table.set_titles(Row::new(vec![
         Cell::new("Search Total"),
         Cell::new("Filtered"),
-        Cell::new("Start Cursor"),
         Cell::new("End Cursor"),
     ]));
-
-    let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
-    let start_cursor_cell = if use_color {
-        if page_info.has_previous_page {
-            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
-        } else {
-            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::RED))
-        }
-    } else {
-        Cell::new(&end_cursor)
-    };
 
     let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
     let end_cursor_cell = if use_color {
@@ -123,7 +111,6 @@ fn add_modules_footer(
     paging_info_table.add_row(Row::new(vec![
         total_count_cell,
         filtered_repo_cell,
-        start_cursor_cell,
         end_cursor_cell,
     ]));
 
@@ -355,20 +342,8 @@ fn add_tags_footer(
     let mut paging_info_table = Table::new();
     paging_info_table.set_titles(Row::new(vec![
         Cell::new("Tags Total"),
-        Cell::new("Start Cursor"),
         Cell::new("End Cursor"),
     ]));
-
-    let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
-    let start_cursor_cell = if use_color {
-        if page_info.has_previous_page {
-            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
-        } else {
-            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::RED))
-        }
-    } else {
-        Cell::new(&end_cursor)
-    };
 
     let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
     let end_cursor_cell = if use_color {
@@ -383,7 +358,6 @@ fn add_tags_footer(
 
     paging_info_table.add_row(Row::new(vec![
         total_count_cell,
-        start_cursor_cell,
         end_cursor_cell,
     ]));
 
