@@ -116,26 +116,6 @@ fn add_modules_footer(
 
     let paging_info_cell = Cell::new(&paging_info_table.to_string());
 
-    let has_previous_page_text = if page_info.has_previous_page {
-        "\n\n← Has Previous Page"
-    } else {
-        "\n\nFirst Page"
-    };
-
-    let left_arrow_cell = if use_color {
-        if page_info.has_previous_page {
-            Cell::new(&has_previous_page_text)
-                .with_style(Attr::Bold)
-                .with_style(Attr::ForegroundColor(color::GREEN))
-        } else {
-            Cell::new(&has_previous_page_text)
-                .with_style(Attr::Bold)
-                .with_style(Attr::ForegroundColor(color::RED))
-        }
-    } else {
-        Cell::new(&has_previous_page_text).with_style(Attr::Bold)
-    };
-
     let has_next_page_text = if page_info.has_next_page {
         "\n\nHas Next Page →"
     } else {
@@ -166,7 +146,6 @@ fn add_modules_footer(
         footer_vec.push(Cell::new(""));
     }
 
-    footer_vec.push(left_arrow_cell);
     footer_vec.push(right_arrow_cell);
 
     table.add_row(Row::new(footer_vec));
@@ -363,26 +342,6 @@ fn add_tags_footer(
 
     let paging_info_cell = Cell::new(&paging_info_table.to_string());
 
-    let has_previous_page_text = if page_info.has_previous_page {
-        "\n\n← Has Previous Page"
-    } else {
-        "\n\nFirst Page"
-    };
-
-    let left_arrow_cell = if use_color {
-        if page_info.has_previous_page {
-            Cell::new(&has_previous_page_text)
-                .with_style(Attr::Bold)
-                .with_style(Attr::ForegroundColor(color::GREEN))
-        } else {
-            Cell::new(&has_previous_page_text)
-                .with_style(Attr::Bold)
-                .with_style(Attr::ForegroundColor(color::RED))
-        }
-    } else {
-        Cell::new(&has_previous_page_text).with_style(Attr::Bold)
-    };
-
     let has_next_page_text = if page_info.has_next_page {
         "\n\nHas Next Page →"
     } else {
@@ -413,7 +372,6 @@ fn add_tags_footer(
         footer_vec.push(Cell::new(""));
     }
 
-    footer_vec.push(left_arrow_cell);
     footer_vec.push(right_arrow_cell);
 
     table.add_row(Row::new(footer_vec));

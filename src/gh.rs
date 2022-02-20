@@ -20,7 +20,6 @@ pub fn get_logged_in_user() -> String {
 pub struct ListModulesResponsePageInfo {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
-    pub has_previous_page: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,7 +98,6 @@ pub fn list_modules(
             pageInfo {{
                 hasNextPage
                 endCursor
-                hasPreviousPage
             }}
             repositoryCount
             nodes {{
@@ -202,7 +200,6 @@ pub struct ListModuleResponseRef {
 pub struct ListModuleResponseReleasesPageInfo {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
-    pub has_previous_page: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -210,7 +207,6 @@ pub struct ListModuleResponseReleasesPageInfo {
 pub struct ListModuleResponseRefsPageInfo {
     pub has_next_page: bool,
     pub end_cursor: Option<String>,
-    pub has_previous_page: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -292,7 +288,6 @@ pub fn list_module(
                     pageInfo {{
                         endCursor
                         hasNextPage
-                        hasPreviousPage
                     }}
                     totalCount
                 }}
@@ -308,7 +303,6 @@ pub fn list_module(
                     pageInfo {{
                         endCursor
                         hasNextPage
-                        hasPreviousPage
                     }}
                     totalCount
                 }}
