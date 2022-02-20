@@ -159,13 +159,15 @@ pub fn list_modules(
             Some(pre_sift_len - post_sift_len);
         Ok(list_module_response)
     } else {
-        println!("Failed to list modules:");
         let stderr = modules.stderr;
         let listed_modules_stderr = String::from_utf8(stderr)
             .expect("Could not parse modules")
             .trim()
             .to_string();
-        panic!("{}", listed_modules_stderr);
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            listed_modules_stderr,
+        ))
     }
 }
 
@@ -267,38 +269,38 @@ pub fn list_module(
 
     let query = format!(
         "{{
-        repository(name: \"{}\", owner: \"{}\") {{
-            name
-            description
-            url
-            releases(first: {}, after: {}, orderBy: {{field: CREATED_AT, direction: DESC}}) {{
-                edges {{
-                    node {{
-                        name
+            repository(name: \"{}\", owner: \"{}\") {{
+                name
+                description
+                url
+                releases(first: {}, after: {}, orderBy: {{field: CREATED_AT, direction: DESC}}) {{
+                    edges {{
+                        node {{
+                            name
+                        }}
+                    }}
+                    pageInfo {{
+                        endCursor
+                        hasNextPage
+                        startCursor
+                        hasPreviousPage
                     }}
                 }}
-                pageInfo {{
-                    endCursor
-                    hasNextPage
-                    startCursor
-                    hasPreviousPage
-                }}
-            }}
-            refs(refPrefix: \"refs/tags/\", first: {}, after: {}, orderBy: {{field: TAG_COMMIT_DATE, direction: DESC}}) {{
-                edges {{
-                    node {{
-                        name
+                refs(refPrefix: \"refs/tags/\", first: {}, after: {}, orderBy: {{field: TAG_COMMIT_DATE, direction: DESC}}) {{
+                    edges {{
+                        node {{
+                            name
+                        }}
+                    }}
+                    pageInfo {{
+                        endCursor
+                        hasNextPage
+                        startCursor
+                        hasPreviousPage
                     }}
                 }}
-                pageInfo {{
-                    endCursor
-                    hasNextPage
-                    startCursor
-                    hasPreviousPage
-                }}
             }}
-        }}
-    }}",
+        }}",
         query_module, org, query_first, query_after, query_first, query_after
     );
 
