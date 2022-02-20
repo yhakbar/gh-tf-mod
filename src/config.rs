@@ -1,4 +1,5 @@
 use crate::gh::get_logged_in_user;
+use anyhow::Result;
 use merge::Merge;
 use serde_derive::{Deserialize, Serialize};
 use std::fs::{create_dir_all, metadata, read_to_string, write};
@@ -19,7 +20,7 @@ impl Config {
             provider: provider,
         }
     }
-    pub fn save(&self) -> std::io::Result<()> {
+    pub fn save(&self) -> Result<()> {
         let config_path = PathBuf::from(".config");
         let config_file = &config_path.join("gh-tf-mod.yaml");
         let config_string = serde_yaml::to_string(self).expect("Could not serialize config");

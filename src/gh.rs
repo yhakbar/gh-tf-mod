@@ -1,3 +1,4 @@
+use anyhow::Result;
 use regex::Regex;
 use serde_derive::{Deserialize, Serialize};
 use std::process::Command;
@@ -189,13 +190,35 @@ pub struct ListModuleResponseRef {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ListModuleResponseReleases {
-    pub edges: Vec<ListModuleResponseRelease>,
+#[serde(rename_all = "camelCase")]
+pub struct ListModuleResponseReleasesPageInfo {
+    pub has_next_page: bool,
+    pub end_cursor: Option<String>,
+    pub has_previous_page: bool,
+    pub start_cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListModuleResponseRefsPageInfo {
+    pub has_next_page: bool,
+    pub end_cursor: Option<String>,
+    pub has_previous_page: bool,
+    pub start_cursor: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListModuleResponseReleases {
+    pub edges: Vec<ListModuleResponseRelease>,
+    pub page_info: ListModuleResponseReleasesPageInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListModuleResponseRefs {
     pub edges: Vec<ListModuleResponseRef>,
+    pub page_info: ListModuleResponseRefsPageInfo,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -248,18 +271,30 @@ pub fn list_module(
             name
             description
             url
-            releases(first: {}, after: {}) {{
+            releases(first: {}, after: {}, orderBy: {{field: CREATED_AT, direction: DESC}}) {{
                 edges {{
                     node {{
                         name
                     }}
                 }}
+                pageInfo {{
+                    endCursor
+                    hasNextPage
+                    startCursor
+                    hasPreviousPage
+                }}
             }}
-            refs(refPrefix: \"refs/tags/\", first: {}, after: {}) {{
+            refs(refPrefix: \"refs/tags/\", first: {}, after: {}, orderBy: {{field: TAG_COMMIT_DATE, direction: DESC}}) {{
                 edges {{
                     node {{
                         name
                     }}
+                }}
+                pageInfo {{
+                    endCursor
+                    hasNextPage
+                    startCursor
+                    hasPreviousPage
                 }}
             }}
         }}

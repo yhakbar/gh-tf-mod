@@ -5,6 +5,7 @@ mod gh;
 mod tables;
 
 use crate::config::Config;
+use anyhow::Result;
 use structopt::StructOpt;
 
 use crate::tables::print_modules_table;
@@ -49,7 +50,7 @@ enum Commands {
     },
 }
 
-fn main() -> std::io::Result<()> {
+fn main() -> Result<()> {
     let args = Commands::from_args();
     match args {
         Commands::Config { org, provider } => {
