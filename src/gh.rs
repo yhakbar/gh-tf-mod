@@ -222,6 +222,7 @@ pub struct ListModuleResponseRefsPageInfo {
 pub struct ListModuleResponseReleases {
     pub edges: Vec<ListModuleResponseRelease>,
     pub page_info: ListModuleResponseReleasesPageInfo,
+    pub total_count: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -229,6 +230,7 @@ pub struct ListModuleResponseReleases {
 pub struct ListModuleResponseRefs {
     pub edges: Vec<ListModuleResponseRef>,
     pub page_info: ListModuleResponseRefsPageInfo,
+    pub total_count: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -267,7 +269,7 @@ pub fn list_module(
     let query_first = if first.is_some() {
         format!("{}", first.unwrap())
     } else {
-        "30".to_string()
+        "3".to_string()
     };
     let query_after = if after.is_some() {
         format!("\"{}\"", after.unwrap())
@@ -285,6 +287,7 @@ pub fn list_module(
                     edges {{
                         node {{
                             name
+                            url
                             tag {{
                                 name
                             }}
@@ -296,11 +299,15 @@ pub fn list_module(
                         startCursor
                         hasPreviousPage
                     }}
+                    totalCount
                 }}
                 refs(refPrefix: \"refs/tags/\", first: {}, after: {}, orderBy: {{field: TAG_COMMIT_DATE, direction: DESC}}) {{
                     edges {{
                         node {{
                             name
+                            target {{
+                                commitUrl
+                            }}
                         }}
                     }}
                     pageInfo {{
@@ -309,6 +316,7 @@ pub fn list_module(
                         startCursor
                         hasPreviousPage
                     }}
+                    totalCount
                 }}
             }}
         }}",

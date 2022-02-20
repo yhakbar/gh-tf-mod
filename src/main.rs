@@ -8,7 +8,7 @@ use crate::config::Config;
 use anyhow::Result;
 use structopt::StructOpt;
 
-use crate::tables::print_modules_table;
+use crate::tables::{print_module_table, print_modules_table};
 
 /// GitHub CLI extension for managing local Terraform modules.
 #[derive(StructOpt, Debug)]
@@ -84,8 +84,7 @@ fn main() -> Result<()> {
                     if json {
                         println!("{}", serde_json::to_string(&list_module_response)?);
                     } else {
-                        // print_modules_table(list_module_response, no_color);
-                        println!("{}", serde_json::to_string(&list_module_response)?);
+                        print_module_table(list_module_response, no_color, description, url);
                     }
                 }
                 None => {
