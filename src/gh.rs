@@ -27,6 +27,7 @@ pub struct ListModulesResponsePageInfo {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListModulesResponseRelease {
+    pub name: String,
     pub tag_name: String,
     pub published_at: String,
 }
@@ -110,6 +111,7 @@ pub fn list_modules(
                     url
                     releases(last: 1) {{
                         nodes {{
+                            name
                             tagName
                             publishedAt
                         }}
@@ -172,8 +174,14 @@ pub fn list_modules(
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ListModuleResponseReleaseTag {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ListModuleResponseReleaseNode {
     pub name: String,
+    pub tag: ListModuleResponseReleaseTag,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -277,6 +285,9 @@ pub fn list_module(
                     edges {{
                         node {{
                             name
+                            tag {{
+                                name
+                            }}
                         }}
                     }}
                     pageInfo {{

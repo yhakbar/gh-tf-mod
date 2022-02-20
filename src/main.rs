@@ -35,6 +35,12 @@ enum Commands {
         // Provider to list modules from.
         #[structopt(short, long)]
         provider: Option<String>,
+        // Print description of module.
+        #[structopt(short, long)]
+        description: bool,
+        // Print URL of module.
+        #[structopt(short, long)]
+        url: bool,
         // JSON output.
         #[structopt(long)]
         json: bool,
@@ -61,6 +67,8 @@ fn main() -> Result<()> {
             module,
             org,
             provider,
+            description,
+            url,
             json,
             no_color,
             first,
@@ -86,7 +94,7 @@ fn main() -> Result<()> {
                     if json {
                         println!("{}", serde_json::to_string(&list_modules_response)?);
                     } else {
-                        print_modules_table(list_modules_response, no_color);
+                        print_modules_table(list_modules_response, no_color, description, url);
                     }
                 }
             }

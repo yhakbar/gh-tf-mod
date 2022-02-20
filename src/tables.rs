@@ -1,46 +1,63 @@
 use crate::gh::{ListModulesResponse, ListModulesResponsePageInfo};
 use prettytable::{color, Attr, Cell, Row, Table};
 
-fn add_header(table: &mut Table, no_color: bool) {
+fn add_modules_header(table: &mut Table, no_color: bool, description: bool, url: bool) {
     let use_color = !no_color;
 
-    let mut name_cell = Cell::new("Name").with_style(Attr::Bold);
-    name_cell = if use_color {
-        name_cell.with_style(Attr::ForegroundColor(color::CYAN))
+    let name_header_value = "Name";
+    let name_header = if use_color {
+        Cell::new(name_header_value).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::CYAN))
     } else {
-        name_cell
+        Cell::new(name_header_value).with_style(Attr::Bold)
     };
 
-    let mut latest_tag_cell = Cell::new("Latest Tag").with_style(Attr::Bold);
-    latest_tag_cell = if use_color {
-        latest_tag_cell.with_style(Attr::ForegroundColor(color::CYAN))
+    let latest_tag_header_value = "Latest Tag";
+    let latest_tag_header = if use_color {
+        Cell::new(latest_tag_header_value).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::CYAN))
     } else {
-        latest_tag_cell
+        Cell::new(latest_tag_header_value).with_style(Attr::Bold)
     };
 
-    let mut latest_release_cell = Cell::new("Latest Release").with_style(Attr::Bold);
-    latest_release_cell = if use_color {
-        latest_release_cell.with_style(Attr::ForegroundColor(color::CYAN))
+    let latest_release_header_value = "Latest Release";
+    let latest_release_header = if use_color {
+        Cell::new(latest_release_header_value).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::CYAN))
     } else {
-        latest_release_cell
+        Cell::new(latest_release_header_value).with_style(Attr::Bold)
     };
 
-    table.set_titles(Row::new(vec![
-        name_cell,
-        // TODO Add flag for these
-        // Cell::new("Description").with_style(Attr::Bold),
-        // Cell::new("URL").with_style(Attr::Bold),
-        latest_tag_cell,
-        latest_release_cell,
-    ]));
+    let mut title_vec = vec![name_header];
+    if description {
+        let description_header_value = "Description";
+        let description_header = if use_color {
+            Cell::new(description_header_value).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(description_header_value).with_style(Attr::Bold)
+        };
+        title_vec.push(description_header);
+    }
+    if url {
+        let url_header_value = "URL";
+        let url_header = if use_color {
+            Cell::new(url_header_value).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(url_header_value).with_style(Attr::Bold)
+        };
+        title_vec.push(url_header);
+    }
+    title_vec.push(latest_tag_header);
+    title_vec.push(latest_release_header);
+
+    table.set_titles(Row::new(title_vec));
 }
 
-fn add_footer(
+fn add_modules_footer(
     table: &mut Table,
     total_count: u64,
     filtered_repos: u64,
     page_info: &ListModulesResponsePageInfo,
     no_color: bool,
+    description: bool,
+    url: bool,
 ) {
     let use_color = !no_color;
 
@@ -104,20 +121,16 @@ fn add_footer(
     } else {
         "\n\nFirst Page"
     };
-    let mut left_arrow_cell = Cell::new(&has_previous_page_text).with_style(Attr::Bold);
-    if page_info.has_previous_page {
-        left_arrow_cell = if use_color {
-            left_arrow_cell.with_style(Attr::ForegroundColor(color::GREEN))
+
+    let left_arrow_cell = if use_color {
+        if page_info.has_previous_page {
+            Cell::new(&has_previous_page_text).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::GREEN))
         } else {
-            left_arrow_cell
-        };
+            Cell::new(&has_previous_page_text).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::RED))
+        }
     } else {
-        left_arrow_cell = if use_color {
-            left_arrow_cell.with_style(Attr::ForegroundColor(color::RED))
-        } else {
-            left_arrow_cell
-        };
-    }
+        Cell::new(&has_previous_page_text).with_style(Attr::Bold)
+    };
 
     let has_next_page_text = if page_info.has_next_page {
         "\n\nHas Next Page →"
@@ -125,39 +138,44 @@ fn add_footer(
         "\n\nLast Page"
     };
 
-    let mut right_arrow_cell = Cell::new(&has_next_page_text).with_style(Attr::Bold);
-
-    if page_info.has_next_page {
-        right_arrow_cell = if use_color {
-            right_arrow_cell.with_style(Attr::ForegroundColor(color::GREEN))
+    let right_arrow_cell = if use_color {
+        if page_info.has_next_page {
+            Cell::new(&has_next_page_text).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::GREEN))
         } else {
-            right_arrow_cell
-        };
+            Cell::new(&has_next_page_text).with_style(Attr::Bold).with_style(Attr::ForegroundColor(color::RED))
+        }
     } else {
-        right_arrow_cell = if use_color {
-            right_arrow_cell.with_style(Attr::ForegroundColor(color::RED))
-        } else {
-            right_arrow_cell
-        };
+        Cell::new(&has_next_page_text).with_style(Attr::Bold)
+    };
+
+    let mut footer_vec = vec![paging_info_cell];
+
+    if description {
+        footer_vec.push(Cell::new(""));
     }
 
-    table.add_row(Row::new(vec![
-        paging_info_cell,
-        left_arrow_cell,
-        right_arrow_cell,
-    ]));
+    if url {
+        footer_vec.push(Cell::new(""));
+    }
+
+    footer_vec.push(left_arrow_cell);
+    footer_vec.push(right_arrow_cell);
+
+    table.add_row(Row::new(footer_vec));
 }
 
-pub fn print_modules_table(list_modules_response: ListModulesResponse, no_color: bool) {
+pub fn print_modules_table(list_modules_response: ListModulesResponse, no_color: bool, description: bool, url: bool) {
     let mut table = Table::new();
-    add_header(&mut table, no_color);
+    add_modules_header(&mut table, no_color, description, url);
     for module in list_modules_response.data.search.nodes {
         let mut row = Row::empty();
         row.add_cell(Cell::new(&module.name));
-        // TODO: Add flag for description
-        // row.add_cell(Cell::new(&module.description.unwrap_or("".to_string())));
-        // TODO: Add flag for url
-        // row.add_cell(Cell::new(&module.url));
+        if description {
+            row.add_cell(Cell::new(&module.description.unwrap_or_default()));
+        }
+        if url {
+            row.add_cell(Cell::new(&module.url));
+        }
         let latest_tag_name = if module.refs.nodes.is_empty() {
             "".to_string()
         } else {
@@ -167,12 +185,12 @@ pub fn print_modules_table(list_modules_response: ListModulesResponse, no_color:
         let latest_release_name = if module.releases.nodes.is_empty() {
             "".to_string()
         } else {
-            module.releases.nodes[0].tag_name.clone()
+            module.releases.nodes[0].name.clone()
         };
         row.add_cell(Cell::new(&latest_release_name));
         table.add_row(row);
     }
-    add_footer(
+    add_modules_footer(
         &mut table,
         list_modules_response.data.search.repository_count,
         list_modules_response
@@ -182,6 +200,8 @@ pub fn print_modules_table(list_modules_response: ListModulesResponse, no_color:
             .unwrap_or(0),
         &list_modules_response.data.search.page_info,
         no_color,
+        description,
+        url,
     );
     table.printstd();
 }
