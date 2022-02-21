@@ -163,6 +163,8 @@ pub fn print_modules_table(
     tags: bool,
     releases: bool,
 ) {
+    let use_color = !no_color;
+
     let mut table = Table::new();
     add_modules_header(&mut table, no_color, description, url, tags, releases);
     for module in list_modules_response.data.search.nodes {
@@ -173,7 +175,12 @@ pub fn print_modules_table(
             row.add_cell(Cell::new(&module.description.unwrap_or_default()));
         }
         if url {
-            row.add_cell(Cell::new(&module.url));
+            let url_cell = if use_color {
+                Cell::new(&module.url).with_style(Attr::ForegroundColor(color::BLUE))
+            } else {
+                Cell::new(&module.url)
+            };
+            row.add_cell(url_cell);
         }
         if tags {
             let latest_tag_name = if module.refs.nodes.is_empty() {
@@ -302,64 +309,80 @@ fn add_tags_header(table: &mut Table, no_color: bool, url: bool) {
     table.set_titles(Row::new(title_vec));
 }
 
-fn add_tags_footer(
-    table: &mut Table,
+fn print_tags_paging_info(
     total_count: u64,
     page_info: &ListModuleResponseRefsPageInfo,
     no_color: bool,
 ) {
     let use_color = !no_color;
 
-    let total_count_text = format!("{}", total_count);
-    let total_count_cell = Cell::new(&total_count_text);
-
     let mut page_info_table = Table::new();
 
-    let mut page_info_titles_vec = vec![Cell::new("Tags Total")];
+    let mut page_info_titles_vec = vec![];
+
+    let tags_total_header_value = "Tags Total";
+    let tags_total_header = if use_color {
+        Cell::new(tags_total_header_value)
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::CYAN))
+    } else {
+        Cell::new(tags_total_header_value).with_style(Attr::Bold)
+    };
+    page_info_titles_vec.push(tags_total_header);
 
     if page_info.has_next_page {
-        page_info_titles_vec.push(Cell::new("End Cursor"));
+        let end_cursor_header_value = "End Cursor";
+        let end_cursor_header = if use_color {
+            Cell::new(end_cursor_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(end_cursor_header_value).with_style(Attr::Bold)
+        };
+        page_info_titles_vec.push(end_cursor_header);
     }
 
     page_info_table.set_titles(Row::new(page_info_titles_vec));
 
+    let total_count_text = format!("{}", total_count);
+    let total_count_cell = Cell::new(&total_count_text);
     let mut page_info_vec = vec![total_count_cell];
 
     if page_info.has_next_page {
         let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
-        let end_cursor_cell = Cell::new(&end_cursor);
+        let end_cursor_cell = if use_color {
+            Cell::new(end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
+        } else {
+            Cell::new(end_cursor)
+        };
         page_info_vec.push(end_cursor_cell);
     }
 
     page_info_table.add_row(Row::new(page_info_vec));
 
-    let page_info_cell = if use_color {
-        Cell::new(&page_info_table.to_string())
-            .with_style(Attr::Bold)
-            .with_style(Attr::ForegroundColor(color::GREEN))
-    } else {
-        Cell::new(&page_info_table.to_string()).with_style(Attr::Bold)
-    };
-
-    let footer_vec = vec![page_info_cell];
-
-    table.add_row(Row::new(footer_vec));
+    page_info_table.printstd();
 }
 
 fn print_tags_table(tags: ListModuleResponseRefs, no_color: bool, url: bool) {
+    let use_color = !no_color;
     let mut table = Table::new();
     add_tags_header(&mut table, no_color, url);
     for tag in tags.edges {
         let mut row = Row::empty();
         row.add_cell(Cell::new(&tag.node.name));
         if url {
-            let url_cell = Cell::new(&tag.node.target.commit_url);
+            let url_cell = if use_color {
+                Cell::new(&tag.node.target.commit_url)
+                    .with_style(Attr::ForegroundColor(color::BLUE))
+            } else {
+                Cell::new(&tag.node.target.commit_url)
+            };
             row.add_cell(url_cell);
         }
         table.add_row(row);
     }
-    add_tags_footer(&mut table, tags.total_count, &tags.page_info, no_color);
     table.printstd();
+    print_tags_paging_info(tags.total_count, &tags.page_info, no_color);
 }
 
 fn add_releases_header(table: &mut Table, no_color: bool, url: bool, tags: bool) {
@@ -401,58 +424,58 @@ fn add_releases_header(table: &mut Table, no_color: bool, url: bool, tags: bool)
     table.set_titles(Row::new(title_vec));
 }
 
-fn add_releases_footer(
-    table: &mut Table,
+fn print_module_paging_info(
     total_count: u64,
     page_info: &ListModuleResponseReleasesPageInfo,
     no_color: bool,
-    url: bool,
-    tags: bool,
 ) {
     let use_color = !no_color;
 
-    let total_count_text = format!("{}", total_count);
-    let total_count_cell = Cell::new(&total_count_text);
-
     let mut page_info_table = Table::new();
 
-    let mut page_info_titles_vec = vec![Cell::new("Releases Total")];
+    let mut page_info_titles_vec = vec![];
+
+    let releases_total_header_value = "Releases Total";
+    let releases_total_header = if use_color {
+        Cell::new(releases_total_header_value)
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::CYAN))
+    } else {
+        Cell::new(releases_total_header_value).with_style(Attr::Bold)
+    };
+    page_info_titles_vec.push(releases_total_header);
 
     if page_info.has_next_page {
-        page_info_titles_vec.push(Cell::new("End Cursor"));
+        let end_cursor_header_value = "End Cursor";
+        let end_cursor_header = if use_color {
+            Cell::new(end_cursor_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(end_cursor_header_value).with_style(Attr::Bold)
+        };
+        page_info_titles_vec.push(end_cursor_header);
     }
 
     page_info_table.set_titles(Row::new(page_info_titles_vec));
 
+    let total_count_text = format!("{}", total_count);
+    let total_count_cell = Cell::new(&total_count_text);
     let mut page_info_vec = vec![total_count_cell];
 
     if page_info.has_next_page {
         let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
-        let end_cursor_cell = Cell::new(&end_cursor);
+        let end_cursor_cell = if use_color {
+            Cell::new(end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
+        } else {
+            Cell::new(end_cursor)
+        };
         page_info_vec.push(end_cursor_cell);
     }
 
     page_info_table.add_row(Row::new(page_info_vec));
 
-    let page_info_cell = if use_color {
-        Cell::new(&page_info_table.to_string())
-            .with_style(Attr::Bold)
-            .with_style(Attr::ForegroundColor(color::GREEN))
-    } else {
-        Cell::new(&page_info_table.to_string()).with_style(Attr::Bold)
-    };
-
-    let mut footer_vec = vec![page_info_cell];
-
-    if tags {
-        footer_vec.push(Cell::new(""));
-    }
-
-    if url {
-        footer_vec.push(Cell::new(""));
-    }
-
-    table.add_row(Row::new(footer_vec));
+    page_info_table.printstd();
 }
 
 fn print_releases_table(
@@ -461,6 +484,7 @@ fn print_releases_table(
     url: bool,
     tags: bool,
 ) {
+    let use_color = !no_color;
     let mut table = Table::new();
     add_releases_header(&mut table, no_color, url, tags);
     for release in releases.edges {
@@ -471,20 +495,17 @@ fn print_releases_table(
             row.add_cell(tags_cell);
         }
         if url {
-            let url_cell = Cell::new(&release.node.url);
+            let url_cell = if use_color {
+                Cell::new(&release.node.url).with_style(Attr::ForegroundColor(color::BLUE))
+            } else {
+                Cell::new(&release.node.url)
+            };
             row.add_cell(url_cell);
         }
         table.add_row(row);
     }
-    add_releases_footer(
-        &mut table,
-        releases.total_count,
-        &releases.page_info,
-        no_color,
-        url,
-        tags,
-    );
     table.printstd();
+    print_module_paging_info(releases.total_count, &releases.page_info, no_color);
 }
 
 pub fn print_module_table(
