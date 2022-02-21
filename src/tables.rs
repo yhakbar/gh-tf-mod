@@ -232,7 +232,16 @@ fn add_module_header(
         Cell::new(name_header_value).with_style(Attr::Bold)
     };
 
-    let mut title_vec = vec![name_header];
+    let provider_header_value = "Provider";
+    let provider_header = if use_color {
+        Cell::new(provider_header_value)
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::CYAN))
+    } else {
+        Cell::new(provider_header_value).with_style(Attr::Bold)
+    };
+
+    let mut title_vec = vec![name_header, provider_header];
     if description {
         let description_header_value = "Description";
         let description_header = if use_color {
@@ -424,7 +433,7 @@ fn add_releases_header(table: &mut Table, no_color: bool, url: bool, tags: bool)
     table.set_titles(Row::new(title_vec));
 }
 
-fn print_module_paging_info(
+fn print_releases_paging_info(
     total_count: u64,
     page_info: &ListModuleResponseReleasesPageInfo,
     no_color: bool,
@@ -505,7 +514,7 @@ fn print_releases_table(
         table.add_row(row);
     }
     table.printstd();
-    print_module_paging_info(releases.total_count, &releases.page_info, no_color);
+    print_releases_paging_info(releases.total_count, &releases.page_info, no_color);
 }
 
 pub fn print_module_table(
@@ -532,7 +541,22 @@ pub fn print_module_table(
         tags_is_empty,
         releases_is_empty,
     );
-    let mut module_vec = vec![Cell::new(&list_module_response.data.repository.name)];
+    let mut module_vec = vec![
+        Cell::new(
+            &list_module_response
+                .data
+                .repository
+                .short_name
+                .unwrap_or_default(),
+        ),
+        Cell::new(
+            &list_module_response
+                .data
+                .repository
+                .provider
+                .unwrap_or_default(),
+        ),
+    ];
     if description {
         module_vec.push(Cell::new(
             &list_module_response

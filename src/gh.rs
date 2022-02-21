@@ -247,6 +247,8 @@ pub struct ListModuleResponseRefs {
 pub struct ListModuleResponseRepository {
     pub name: String,
     pub description: Option<String>,
+    pub short_name: Option<String>,
+    pub provider: Option<String>,
     pub url: String,
     pub releases: ListModuleResponseReleases,
     pub refs: ListModuleResponseRefs,
@@ -344,8 +346,15 @@ pub fn list_module(
         .to_string();
 
     if module.status.code() == Some(0) {
-        let list_module_response: ListModuleResponse =
+        let mut list_module_response: ListModuleResponse =
             serde_json::from_str(&listed_module_output).expect("Could not parse module");
+        let repo_name = list_module_response.data.repository.name.clone();
+        let name_regex = Regex::new(r"^terraform-([^-]+)-(.*)-module$").unwrap();
+        let provider_capture = name_regex.captures(&repo_name).unwrap();
+        list_module_response.data.repository.provider =
+            Some(provider_capture.get(1).unwrap().as_str().to_string());
+        list_module_response.data.repository.short_name =
+            Some(provider_capture.get(2).unwrap().as_str().to_string());
         Ok(list_module_response)
     } else {
         let stderr = module.stderr;
