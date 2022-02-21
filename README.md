@@ -24,10 +24,6 @@ gh extension upgrade tf-mod
 
 ## Usage
 
-Please use the `-h` flag for usage info, including on subcommands.
-
-If the information is not clear, please consider opening an issue or a pull request on this repository.
-
 ## Config
 
 You can optionally use a config file by placing a config file at `.config/gh-tf-mod.yaml`. Running the following populates it based on the `-o|--organization` and `-p|--provider` flags:
@@ -45,10 +41,10 @@ If you don't specify a default provider, make sure to either pass in the provide
 e.g.
 
 ```bash
-$ gh tf-mod ls aws-iam-role
+$ gh tf-mod ls provider-foo
 ...
 # or
-$ gh tf-mod ls -p aws iam-role
+$ gh tf-mod ls -p provider foo
 ...
 ```
 
@@ -60,13 +56,13 @@ Use the `ls` subcommand without any target to list all modules in a GitHub organ
 
 ```bash
 $ gh tf-mod ls
-+----------+----------+
-| Name     | Provider |
-+==========+==========+
-| lambda   | aws      |
-+----------+----------+
-| iam-role | aws      |
-+----------+----------+
++------+----------+
+| Name | Provider |
++======+==========+
+| foo  | provider |
++------+----------+
+| bar  | provider |
++------+----------+
 +-------+--------------+
 | Repos | Hidden Repos |
 +=======+==============+
@@ -78,13 +74,13 @@ Use the `-l|--long` flag to see all the optional data that is available:
 
 ```bash
 $ gh tf-mod ls -l
-+----------+----------+-------------------------------+----------------------------------------------------------+------------+----------------+
-| Name     | Provider | Description                   | URL                                                      | Latest Tag | Latest Release |
-+==========+==========+===============================+==========================================================+============+================+
-| lambda   | aws      | Terraform AWS Lambda Module   | https://github.com/yhakbar/terraform-aws-lambda-module   | 0.0.1      |                |
-+----------+----------+-------------------------------+----------------------------------------------------------+------------+----------------+
-| iam-role | aws      | Terraform AWS IAM Role Module | https://github.com/yhakbar/terraform-aws-iam-role-module | 2.1.0      | 2.1.0          |
-+----------+----------+-------------------------------+----------------------------------------------------------+------------+----------------+
++------+----------+-------------------------------+------------------------------------------------------+------------+----------------+
+| Name | Provider | Description                   | URL                                                  | Latest Tag | Latest Release |
++======+==========+===============================+======================================================+============+================+
+| foo  | provider | Terraform Provider Foo Module | https://github.com/org/terraform-provider-foo-module | 0.0.1      |                |
++------+----------+-------------------------------+------------------------------------------------------+------------+----------------+
+| bar  | provider | Terraform Provider Bar Module | https://github.com/org/terraform-provider-bar-module | 2.1.0      | 2.1.0          |
++------+----------+-------------------------------+------------------------------------------------------+------------+----------------+
 +-------+--------------+
 | Repos | Hidden Repos |
 +=======+==============+
@@ -92,18 +88,52 @@ $ gh tf-mod ls -l
 +-------+--------------+
 ```
 
-## List Latest Release of Terraform Module
+## List Info for a Terraform Module
 
 ```bash
-$ gh tf-mod ls aws-iam-role
-0.0.3
+$ gh tf-mod ls provider-bar
++------+----------+------------+----------------+
+| Name | Provider | Latest Tag | Latest Release |
++======+==========+============+================+
+| bar  | provider | 2.1.0      | 2.1.0          |
++------+----------+------------+----------------+
 ```
 
-## List All Releases of Terraform Module
+## List Extra Info for a Terraform Module
 
 ```bash
-$ gh tf-mod ls aws-iam-role -v
-0.0.1
-0.0.2
-0.0.3
+$ gh tf-mod ls provider-bar -l
++------+----------+-------------------------------+------------------------------------------------------+------------+----------------+
+| Name | Provider | Description                   | URL                                                  | Latest Tag | Latest Release |
++======+==========+===============================+======================================================+============+================+
+| bar  | provider | Terraform Provider Bar Module | https://github.com/org/terraform-provider-bar-module | 2.1.0      | 2.1.0          |
++------+----------+-------------------------------+------------------------------------------------------+------------+----------------+
++-------+-----------------------------------------------------------------+
+| Tag   | URL                                                             |
++=======+=================================================================+
+| 2.1.0 | https://github.com/org/terraform-provider-bar-module/commit/abc |
++-------+-----------------------------------------------------------------+
+| 2.0.0 | https://github.com/org/terraform-provider-bar-module/commit/xyz |
++-------+-----------------------------------------------------------------+
+| 1.0.0 | https://github.com/org/terraform-provider-bar-module/commit/123 |
++-------+-----------------------------------------------------------------+
++------------+------------+
+| Tags Total | End Cursor |
++============+============+
+| 7          | Mw         |
++------------+------------+
++---------+-------+-------------------------------------------------------------------------+
+| Release | Tag   | URL                                                                     |
++=========+=======+=========================================================================+
+| 2.1.0   | 2.1.0 | https://github.com/org/terraform-provider-bar-module/releases/tag/2.1.0 |
++---------+-------+-------------------------------------------------------------------------+
+| 2.0.0   | 2.0.0 | https://github.com/org/terraform-provider-bar-module/releases/tag/2.0.0 |
++---------+-------+-------------------------------------------------------------------------+
+| 1.0.0   | 1.0.0 | https://github.com/org/terraform-provider-bar-module/releases/tag/1.0.0 |
++---------+-------+-------------------------------------------------------------------------+
++----------------+------------+
+| Releases Total | End Cursor |
++================+============+
+| 7              | xyz        |
++----------------+------------+
 ```
