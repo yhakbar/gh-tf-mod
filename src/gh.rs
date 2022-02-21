@@ -46,8 +46,11 @@ pub struct ListModulesResponseRefs {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListModulesResponseNode {
     pub name: String,
+    pub short_name: Option<String>,
+    pub provider: Option<String>,
     pub description: Option<String>,
     pub url: String,
     pub releases: ListModulesResponseReleases,
@@ -137,25 +140,32 @@ pub fn list_modules(
         .to_string();
 
     if modules.status.code() == Some(0) {
-        let mut list_module_response: ListModulesResponse =
+        let mut list_modules_response: ListModulesResponse =
             serde_json::from_str(&listed_modules_output).expect("Could not parse modules");
         let regex_provider = if provider.is_some() {
             format!("{}-", &provider.unwrap())
         } else {
             "".to_string()
         };
-        let regex_pattern = format!("terraform-{}.*-module", regex_provider);
-        let re = Regex::new(&regex_pattern).unwrap();
-        let pre_sift_len = list_module_response.data.search.nodes.len() as u64;
-        list_module_response
+        let filter_regex_pattern = format!("terraform-{}.*-module", regex_provider);
+        let re = Regex::new(&filter_regex_pattern).unwrap();
+        let pre_sift_len = list_modules_response.data.search.nodes.len() as u64;
+        list_modules_response
             .data
             .search
             .nodes
             .retain(|item| re.is_match(item.name.as_str()));
-        let post_sift_len = list_module_response.data.search.nodes.len() as u64;
-        list_module_response.data.search.filtered_repository_count =
+        let post_sift_len = list_modules_response.data.search.nodes.len() as u64;
+        list_modules_response.data.search.filtered_repository_count =
             Some(pre_sift_len - post_sift_len);
-        Ok(list_module_response)
+        for node in &mut list_modules_response.data.search.nodes {
+            let repo_name = node.name.clone();
+            let name_regex = Regex::new(r"^terraform-([^-]+)-(.*)-module$").unwrap();
+            let provider_capture = name_regex.captures(&repo_name).unwrap();
+            node.provider = Some(provider_capture.get(1).unwrap().as_str().to_string());
+            node.short_name = Some(provider_capture.get(2).unwrap().as_str().to_string());
+        }
+        Ok(list_modules_response)
     } else {
         let stderr = modules.stderr;
         let listed_modules_stderr = String::from_utf8(stderr)

@@ -24,7 +24,16 @@ fn add_modules_header(
         Cell::new(name_header_value).with_style(Attr::Bold)
     };
 
-    let mut title_vec = vec![name_header];
+    let provider_header_value = "Provider";
+    let provider_header = if use_color {
+        Cell::new(provider_header_value)
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::CYAN))
+    } else {
+        Cell::new(provider_header_value).with_style(Attr::Bold)
+    };
+
+    let mut title_vec = vec![name_header, provider_header];
     if description {
         let description_header_value = "Description";
         let description_header = if use_color {
@@ -73,16 +82,11 @@ fn add_modules_header(
     table.set_titles(Row::new(title_vec));
 }
 
-fn add_modules_footer(
-    table: &mut Table,
+fn print_modules_paging_info(
     total_count: u64,
     filtered_repos: u64,
     page_info: &ListModulesResponsePageInfo,
     no_color: bool,
-    description: bool,
-    url: bool,
-    tags: bool,
-    releases: bool,
 ) {
     let use_color = !no_color;
 
@@ -91,56 +95,64 @@ fn add_modules_footer(
 
     let mut page_info_table = Table::new();
 
-    let mut page_info_titles_vec = vec![Cell::new("Module Count")];
+    let mut page_info_titles_vec = vec![];
+
+    let repos_header_value = "Repos";
+    let repos_header = if use_color {
+        Cell::new(repos_header_value)
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::CYAN))
+    } else {
+        Cell::new(repos_header_value).with_style(Attr::Bold)
+    };
+    page_info_titles_vec.push(repos_header);
+
     if filtered_repos > 0 {
-        page_info_titles_vec.push(Cell::new("Hidden Repos"));
+        let filtered_repos_header_value = "Hidden Repos";
+        let filtered_repos_header = if use_color {
+            Cell::new(filtered_repos_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(filtered_repos_header_value).with_style(Attr::Bold)
+        };
+        page_info_titles_vec.push(filtered_repos_header);
     }
     if page_info.has_next_page {
-        page_info_titles_vec.push(Cell::new("End Cursor"));
+        let end_cursor_header_value = "End Cursor";
+        let end_cursor_header = if use_color {
+            Cell::new(end_cursor_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(end_cursor_header_value).with_style(Attr::Bold)
+        };
+        page_info_titles_vec.push(end_cursor_header);
     }
     page_info_table.set_titles(Row::new(page_info_titles_vec));
 
     let mut page_info_vec = vec![total_count_cell];
     if filtered_repos > 0 {
         let filtered_repo_text = format!("{}", filtered_repos);
-        let filtered_repo_cell = Cell::new(&filtered_repo_text);
+        let filtered_repo_cell = if use_color {
+            Cell::new(&filtered_repo_text).with_style(Attr::ForegroundColor(color::RED))
+        } else {
+            Cell::new(&filtered_repo_text)
+        };
         page_info_vec.push(filtered_repo_cell);
     }
     if page_info.has_next_page {
         let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
-        let end_cursor_cell = Cell::new(&end_cursor);
+        let end_cursor_cell = if use_color {
+            Cell::new(&end_cursor).with_style(Attr::ForegroundColor(color::GREEN))
+        } else {
+            Cell::new(&end_cursor)
+        };
         page_info_vec.push(end_cursor_cell);
     }
 
     page_info_table.add_row(Row::new(page_info_vec));
-
-    let page_info_cell = if use_color {
-        Cell::new(&page_info_table.to_string())
-            .with_style(Attr::Bold)
-            .with_style(Attr::ForegroundColor(color::GREEN))
-    } else {
-        Cell::new(&page_info_table.to_string()).with_style(Attr::Bold)
-    };
-
-    let mut footer_vec = vec![page_info_cell];
-
-    if description {
-        footer_vec.push(Cell::new(""));
-    }
-
-    if url {
-        footer_vec.push(Cell::new(""));
-    }
-
-    if tags {
-        footer_vec.push(Cell::new(""));
-    }
-
-    if releases {
-        footer_vec.push(Cell::new(""));
-    }
-
-    table.add_row(Row::new(footer_vec));
+    page_info_table.printstd();
 }
 
 pub fn print_modules_table(
@@ -155,7 +167,8 @@ pub fn print_modules_table(
     add_modules_header(&mut table, no_color, description, url, tags, releases);
     for module in list_modules_response.data.search.nodes {
         let mut row = Row::empty();
-        row.add_cell(Cell::new(&module.name));
+        row.add_cell(Cell::new(&module.short_name.unwrap_or(module.name)));
+        row.add_cell(Cell::new(&module.provider.unwrap_or_default()));
         if description {
             row.add_cell(Cell::new(&module.description.unwrap_or_default()));
         }
@@ -180,8 +193,8 @@ pub fn print_modules_table(
         }
         table.add_row(row);
     }
-    add_modules_footer(
-        &mut table,
+    table.printstd();
+    print_modules_paging_info(
         list_modules_response.data.search.repository_count,
         list_modules_response
             .data
@@ -190,12 +203,7 @@ pub fn print_modules_table(
             .unwrap_or(0),
         &list_modules_response.data.search.page_info,
         no_color,
-        description,
-        url,
-        tags,
-        releases,
     );
-    table.printstd();
 }
 
 fn add_module_header(
@@ -299,7 +307,6 @@ fn add_tags_footer(
     total_count: u64,
     page_info: &ListModuleResponseRefsPageInfo,
     no_color: bool,
-    url: bool,
 ) {
     let use_color = !no_color;
 
@@ -334,11 +341,7 @@ fn add_tags_footer(
         Cell::new(&page_info_table.to_string()).with_style(Attr::Bold)
     };
 
-    let mut footer_vec = vec![page_info_cell];
-
-    if url {
-        footer_vec.push(Cell::new(""));
-    }
+    let footer_vec = vec![page_info_cell];
 
     table.add_row(Row::new(footer_vec));
 }
@@ -355,7 +358,7 @@ fn print_tags_table(tags: ListModuleResponseRefs, no_color: bool, url: bool) {
         }
         table.add_row(row);
     }
-    add_tags_footer(&mut table, tags.total_count, &tags.page_info, no_color, url);
+    add_tags_footer(&mut table, tags.total_count, &tags.page_info, no_color);
     table.printstd();
 }
 
