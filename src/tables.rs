@@ -91,9 +91,9 @@ fn add_modules_footer(
 
     let mut page_info_table = Table::new();
 
-    let mut page_info_titles_vec = vec![Cell::new("Search Total")];
+    let mut page_info_titles_vec = vec![Cell::new("Module Count")];
     if filtered_repos > 0 {
-        page_info_titles_vec.push(Cell::new("Filtered Repos"));
+        page_info_titles_vec.push(Cell::new("Hidden Repos"));
     }
     if page_info.has_next_page {
         page_info_titles_vec.push(Cell::new("End Cursor"));
