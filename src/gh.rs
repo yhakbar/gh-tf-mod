@@ -177,6 +177,7 @@ pub struct ListModuleResponseReleaseTag {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ListModuleResponseReleaseNode {
     pub name: String,
+    pub url: String,
     pub tag: ListModuleResponseReleaseTag,
 }
 

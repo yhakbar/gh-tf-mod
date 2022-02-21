@@ -92,7 +92,14 @@ fn main() -> Result<()> {
                     if json {
                         println!("{}", serde_json::to_string(&list_module_response)?);
                     } else {
-                        print_module_table(list_module_response, no_color, description, url);
+                        print_module_table(
+                            list_module_response,
+                            no_color,
+                            description,
+                            url,
+                            tags,
+                            releases,
+                        );
                     }
                 }
                 None => {

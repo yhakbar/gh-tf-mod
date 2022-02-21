@@ -1,6 +1,7 @@
 use crate::gh::{
     ListModuleResponse, ListModuleResponseRefs, ListModuleResponseRefsPageInfo,
-    ListModuleResponseReleases, ListModulesResponse, ListModulesResponsePageInfo,
+    ListModuleResponseReleases, ListModuleResponseReleasesPageInfo, ListModulesResponse,
+    ListModulesResponsePageInfo,
 };
 use prettytable::{color, Attr, Cell, Row, Table};
 
@@ -268,7 +269,7 @@ fn add_module_header(
 fn add_tags_header(table: &mut Table, no_color: bool, url: bool) {
     let use_color = !no_color;
 
-    let name_header_value = "Name";
+    let name_header_value = "Tag";
     let name_header = if use_color {
         Cell::new(name_header_value)
             .with_style(Attr::Bold)
@@ -358,11 +359,138 @@ fn print_tags_table(tags: ListModuleResponseRefs, no_color: bool, url: bool) {
     table.printstd();
 }
 
+fn add_releases_header(table: &mut Table, no_color: bool, url: bool, tags: bool) {
+    let use_color = !no_color;
+
+    let name_header_value = "Release";
+    let name_header = if use_color {
+        Cell::new(name_header_value)
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::CYAN))
+    } else {
+        Cell::new(name_header_value).with_style(Attr::Bold)
+    };
+
+    let mut title_vec = vec![name_header];
+    if tags {
+        let tags_header_value = "Tag";
+        let tags_header = if use_color {
+            Cell::new(tags_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(tags_header_value).with_style(Attr::Bold)
+        };
+        title_vec.push(tags_header);
+    }
+    if url {
+        let url_header_value = "URL";
+        let url_header = if use_color {
+            Cell::new(url_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(url_header_value).with_style(Attr::Bold)
+        };
+        title_vec.push(url_header);
+    }
+
+    table.set_titles(Row::new(title_vec));
+}
+
+fn add_releases_footer(
+    table: &mut Table,
+    total_count: u64,
+    page_info: &ListModuleResponseReleasesPageInfo,
+    no_color: bool,
+    url: bool,
+    tags: bool,
+) {
+    let use_color = !no_color;
+
+    let total_count_text = format!("{}", total_count);
+    let total_count_cell = Cell::new(&total_count_text);
+
+    let mut page_info_table = Table::new();
+
+    let mut page_info_titles_vec = vec![Cell::new("Releases Total")];
+
+    if page_info.has_next_page {
+        page_info_titles_vec.push(Cell::new("End Cursor"));
+    }
+
+    page_info_table.set_titles(Row::new(page_info_titles_vec));
+
+    let mut page_info_vec = vec![total_count_cell];
+
+    if page_info.has_next_page {
+        let end_cursor = &page_info.end_cursor.clone().unwrap_or_default();
+        let end_cursor_cell = Cell::new(&end_cursor);
+        page_info_vec.push(end_cursor_cell);
+    }
+
+    page_info_table.add_row(Row::new(page_info_vec));
+
+    let page_info_cell = if use_color {
+        Cell::new(&page_info_table.to_string())
+            .with_style(Attr::Bold)
+            .with_style(Attr::ForegroundColor(color::GREEN))
+    } else {
+        Cell::new(&page_info_table.to_string()).with_style(Attr::Bold)
+    };
+
+    let mut footer_vec = vec![page_info_cell];
+
+    if tags {
+        footer_vec.push(Cell::new(""));
+    }
+
+    if url {
+        footer_vec.push(Cell::new(""));
+    }
+
+    table.add_row(Row::new(footer_vec));
+}
+
+fn print_releases_table(
+    releases: ListModuleResponseReleases,
+    no_color: bool,
+    url: bool,
+    tags: bool,
+) {
+    let mut table = Table::new();
+    add_releases_header(&mut table, no_color, url, tags);
+    for release in releases.edges {
+        let mut row = Row::empty();
+        row.add_cell(Cell::new(&release.node.name));
+        if tags {
+            let tags_cell = Cell::new(&release.node.tag.name);
+            row.add_cell(tags_cell);
+        }
+        if url {
+            let url_cell = Cell::new(&release.node.url);
+            row.add_cell(url_cell);
+        }
+        table.add_row(row);
+    }
+    add_releases_footer(
+        &mut table,
+        releases.total_count,
+        &releases.page_info,
+        no_color,
+        url,
+        tags,
+    );
+    table.printstd();
+}
+
 pub fn print_module_table(
     list_module_response: ListModuleResponse,
     no_color: bool,
     description: bool,
     url: bool,
+    tags: bool,
+    releases: bool,
 ) {
     let mut table = Table::new();
     let tags_is_empty = list_module_response.data.repository.refs.edges.is_empty();
@@ -407,7 +535,15 @@ pub fn print_module_table(
     }
     table.add_row(Row::new(module_vec));
     table.printstd();
-    if !tags_is_empty {
+    if tags && !tags_is_empty {
         print_tags_table(list_module_response.data.repository.refs, no_color, url);
+    }
+    if releases && !releases_is_empty {
+        print_releases_table(
+            list_module_response.data.repository.releases,
+            no_color,
+            url,
+            tags,
+        );
     }
 }
