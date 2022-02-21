@@ -4,7 +4,14 @@ use crate::gh::{
 };
 use prettytable::{color, Attr, Cell, Row, Table};
 
-fn add_modules_header(table: &mut Table, no_color: bool, description: bool, url: bool) {
+fn add_modules_header(
+    table: &mut Table,
+    no_color: bool,
+    description: bool,
+    url: bool,
+    tags: bool,
+    releases: bool,
+) {
     let use_color = !no_color;
 
     let name_header_value = "Name";
@@ -14,24 +21,6 @@ fn add_modules_header(table: &mut Table, no_color: bool, description: bool, url:
             .with_style(Attr::ForegroundColor(color::CYAN))
     } else {
         Cell::new(name_header_value).with_style(Attr::Bold)
-    };
-
-    let latest_tag_header_value = "Latest Tag";
-    let latest_tag_header = if use_color {
-        Cell::new(latest_tag_header_value)
-            .with_style(Attr::Bold)
-            .with_style(Attr::ForegroundColor(color::CYAN))
-    } else {
-        Cell::new(latest_tag_header_value).with_style(Attr::Bold)
-    };
-
-    let latest_release_header_value = "Latest Release";
-    let latest_release_header = if use_color {
-        Cell::new(latest_release_header_value)
-            .with_style(Attr::Bold)
-            .with_style(Attr::ForegroundColor(color::CYAN))
-    } else {
-        Cell::new(latest_release_header_value).with_style(Attr::Bold)
     };
 
     let mut title_vec = vec![name_header];
@@ -57,8 +46,28 @@ fn add_modules_header(table: &mut Table, no_color: bool, description: bool, url:
         };
         title_vec.push(url_header);
     }
-    title_vec.push(latest_tag_header);
-    title_vec.push(latest_release_header);
+    if tags {
+        let latest_tag_header_value = "Latest Tag";
+        let latest_tag_header = if use_color {
+            Cell::new(latest_tag_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(latest_tag_header_value).with_style(Attr::Bold)
+        };
+        title_vec.push(latest_tag_header);
+    }
+    if releases {
+        let latest_release_header_value = "Latest Release";
+        let latest_release_header = if use_color {
+            Cell::new(latest_release_header_value)
+                .with_style(Attr::Bold)
+                .with_style(Attr::ForegroundColor(color::CYAN))
+        } else {
+            Cell::new(latest_release_header_value).with_style(Attr::Bold)
+        };
+        title_vec.push(latest_release_header);
+    }
 
     table.set_titles(Row::new(title_vec));
 }
@@ -71,6 +80,8 @@ fn add_modules_footer(
     no_color: bool,
     description: bool,
     url: bool,
+    tags: bool,
+    releases: bool,
 ) {
     let use_color = !no_color;
 
@@ -120,6 +131,14 @@ fn add_modules_footer(
         footer_vec.push(Cell::new(""));
     }
 
+    if tags {
+        footer_vec.push(Cell::new(""));
+    }
+
+    if releases {
+        footer_vec.push(Cell::new(""));
+    }
+
     table.add_row(Row::new(footer_vec));
 }
 
@@ -128,9 +147,11 @@ pub fn print_modules_table(
     no_color: bool,
     description: bool,
     url: bool,
+    tags: bool,
+    releases: bool,
 ) {
     let mut table = Table::new();
-    add_modules_header(&mut table, no_color, description, url);
+    add_modules_header(&mut table, no_color, description, url, tags, releases);
     for module in list_modules_response.data.search.nodes {
         let mut row = Row::empty();
         row.add_cell(Cell::new(&module.name));
@@ -140,18 +161,22 @@ pub fn print_modules_table(
         if url {
             row.add_cell(Cell::new(&module.url));
         }
-        let latest_tag_name = if module.refs.nodes.is_empty() {
-            "".to_string()
-        } else {
-            module.refs.nodes[0].name.clone()
-        };
-        row.add_cell(Cell::new(&latest_tag_name));
-        let latest_release_name = if module.releases.nodes.is_empty() {
-            "".to_string()
-        } else {
-            module.releases.nodes[0].name.clone()
-        };
-        row.add_cell(Cell::new(&latest_release_name));
+        if tags {
+            let latest_tag_name = if module.refs.nodes.is_empty() {
+                "".to_string()
+            } else {
+                module.refs.nodes[0].name.clone()
+            };
+            row.add_cell(Cell::new(&latest_tag_name));
+        }
+        if releases {
+            let latest_release_name = if module.releases.nodes.is_empty() {
+                "".to_string()
+            } else {
+                module.releases.nodes[0].name.clone()
+            };
+            row.add_cell(Cell::new(&latest_release_name));
+        }
         table.add_row(row);
     }
     add_modules_footer(
@@ -166,6 +191,8 @@ pub fn print_modules_table(
         no_color,
         description,
         url,
+        tags,
+        releases,
     );
     table.printstd();
 }

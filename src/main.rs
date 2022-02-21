@@ -20,7 +20,7 @@ enum Commands {
         /// Organization to default to.
         #[structopt(short, long)]
         org: Option<String>,
-        // Provider to default to.
+        /// Provider to default to.
         #[structopt(short, long)]
         provider: Option<String>,
     },
@@ -32,27 +32,33 @@ enum Commands {
         /// Organization to list modules from.
         #[structopt(short, long)]
         org: Option<String>,
-        // Provider to list modules from.
+        /// Provider to list modules from.
         #[structopt(short, long)]
         provider: Option<String>,
-        // Print description of module.
+        /// Print description of module.
         #[structopt(short, long)]
         description: bool,
-        // Print URL of module.
+        /// Print URL of module.
         #[structopt(short, long)]
         url: bool,
-        // JSON output.
+        /// JSON output.
         #[structopt(long)]
         json: bool,
-        // Don't use color in output.
+        /// Don't use color in output.
         #[structopt(long)]
         no_color: bool,
-        // First 'f' modules to list. e.g. '-f 5' will list the first 5 modules.
+        /// First 'f' modules to list. e.g. '-f 5' will list the first 5 modules.
         #[structopt(short, long)]
         first: Option<usize>,
-        // After 'a' cursor. e.g. '-a GFa8P2pimQ7=' will list modules after the GFa8P2pimQ7= cursor.
+        /// After 'a' cursor. e.g. '-a xyz=' will list modules after the xyz= cursor.
         #[structopt(short, long)]
         after: Option<String>,
+        /// Show tags
+        #[structopt(short, long)]
+        tags: bool,
+        /// Show releases
+        #[structopt(short, long)]
+        releases: bool,
     },
 }
 
@@ -73,6 +79,8 @@ fn main() -> Result<()> {
             no_color,
             first,
             after,
+            tags,
+            releases,
         } => {
             let config = Config::load(&org, &provider);
             let list_org = &org.unwrap_or(config.org.unwrap());
@@ -93,7 +101,14 @@ fn main() -> Result<()> {
                     if json {
                         println!("{}", serde_json::to_string(&list_modules_response)?);
                     } else {
-                        print_modules_table(list_modules_response, no_color, description, url);
+                        print_modules_table(
+                            list_modules_response,
+                            no_color,
+                            description,
+                            url,
+                            tags,
+                            releases,
+                        );
                     }
                 }
             }
