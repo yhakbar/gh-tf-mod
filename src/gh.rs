@@ -181,8 +181,15 @@ pub struct ListModuleResponseReleaseNode {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListModuleResponseRefTarget {
+    pub commit_url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ListModuleResponseRefNode {
     pub name: String,
+    pub target: ListModuleResponseRefTarget,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
