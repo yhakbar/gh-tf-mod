@@ -27,21 +27,26 @@ impl Config {
         if metadata(&config_path).is_err() {
             create_dir_all(&config_path)?;
         }
-        if metadata(&config_path).is_ok() {
+        let confirmation = if metadata(&config_file).is_ok() {
             println!(
-                "File {} already exists. Please type \"yes\" to confirm.",
+                "File {} already exists. Please type \"yes\" to confirm replacement.",
                 &config_file.to_string_lossy()
             );
             let mut buf = String::new();
             stdin()
                 .read_line(&mut buf)
                 .expect("Failed to read response.");
-            let confirmation = buf.lines().next().expect("Could not read entry.");
-            if confirmation == "yes" {
-                write(config_file, &config_string)?;
-            } else {
-                println!("Aborting.");
-            }
+            buf.lines()
+                .next()
+                .expect("Could not read entry.")
+                .to_string()
+        } else {
+            "yes".to_string()
+        };
+        if confirmation == "yes" {
+            write(config_file, &config_string)?;
+        } else {
+            println!("Aborting!");
         }
         Ok(())
     }
@@ -58,7 +63,11 @@ impl Config {
         let config_org = if org.is_some() {
             org.clone()
         } else {
-            loaded_config.org.clone()
+            if loaded_config.org.is_some() {
+                loaded_config.org.clone()
+            } else {
+                Some(get_logged_in_user())
+            }
         };
         let config_provider = if provider.is_some() {
             provider.clone()

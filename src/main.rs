@@ -106,11 +106,15 @@ fn main() -> Result<()> {
             long,
         } => {
             let config = Config::load(&org, &provider);
-            let list_org = &org.unwrap_or(config.org.unwrap());
             match module {
                 Some(module) => {
-                    let list_module_response =
-                        gh::list_module(list_org.to_string(), provider, module, first, after)?;
+                    let list_module_response = gh::list_module(
+                        config.org.unwrap().to_string(),
+                        provider,
+                        module,
+                        first,
+                        after,
+                    )?;
 
                     if json {
                         println!("{}", serde_json::to_string(&list_module_response)?);
@@ -138,7 +142,8 @@ fn main() -> Result<()> {
                 }
                 None => {
                     let list_modules_response =
-                        gh::list_modules(list_org.to_string(), provider, first, after).unwrap();
+                        gh::list_modules(config.org.unwrap().to_string(), provider, first, after)
+                            .unwrap();
                     if json {
                         println!("{}", serde_json::to_string(&list_modules_response)?);
                     } else {

@@ -24,39 +24,16 @@ gh extension upgrade tf-mod
 
 ## Usage
 
-```bash
-$ gh tf-mod -h
-Usage:
-    gh tf-mod [-hvopc] <command>
+Please use the `-h` flag for usage info, including on subcommands.
 
-    flags:
-        -h, --help          Prints help information
-        -v, --version       Prints version information
-
-    global flags:
-        -o, --organization  The GitHub organization to use
-        -p, --provider      The provider to use
-        -c, --config        The path to the config file
-
-    commands:
-        ls
-        add
-        rm
-        config
-        version
-        help
-```
+If the information is not clear, please consider opening an issue or a pull request on this repository.
 
 ## Config
 
-There is a config file that is located at `~/.config/gh-tf-mod/config.json` by default. You can run the following to populate it:
+You can optionally use a config file by placing a config file at `.config/gh-tf-mod.yaml`. Running the following populates it based on the `-o|--organization` and `-p|--provider` flags:
 
 ```bash
-$ gh tf-mod config
-No config file found at /Users/yhakbar/.config/gh-tf-mod/config.json. Creating...
-Which organization would you like to use with gh-tf-mod? Leave blank to use your personal GitHub user: 
-Defaulting to logged in user: yhakbar.
-Would you like to set a default provider? Leave blank to avoid setting a default provider: aws
+gh tf-mod config -o github-organization -p terraform-provider
 ```
 
 You don't have to set this config file if you don't want to, but it can save you some typing.
@@ -79,10 +56,40 @@ $ gh tf-mod ls -p aws iam-role
 
 ## List Terraform Modules
 
+Use the `ls` subcommand without any target to list all modules in a GitHub organization.
+
 ```bash
 $ gh tf-mod ls
-terraform-aws-lambda-module
-terraform-aws-iam-role-module
++----------+----------+
+| Name     | Provider |
++==========+==========+
+| lambda   | aws      |
++----------+----------+
+| iam-role | aws      |
++----------+----------+
++-------+--------------+
+| Repos | Hidden Repos |
++=======+==============+
+| 3     | 1            |
++-------+--------------+
+```
+
+Use the `-l|--long` flag to see all the optional data that is available:
+
+```bash
+$ gh tf-mod ls -l
++----------+----------+-------------------------------+----------------------------------------------------------+------------+----------------+
+| Name     | Provider | Description                   | URL                                                      | Latest Tag | Latest Release |
++==========+==========+===============================+==========================================================+============+================+
+| lambda   | aws      | Terraform AWS Lambda Module   | https://github.com/yhakbar/terraform-aws-lambda-module   | 0.0.1      |                |
++----------+----------+-------------------------------+----------------------------------------------------------+------------+----------------+
+| iam-role | aws      | Terraform AWS IAM Role Module | https://github.com/yhakbar/terraform-aws-iam-role-module | 2.1.0      | 2.1.0          |
++----------+----------+-------------------------------+----------------------------------------------------------+------------+----------------+
++-------+--------------+
+| Repos | Hidden Repos |
++=======+==============+
+| 3     | 1            |
++-------+--------------+
 ```
 
 ## List Latest Release of Terraform Module
