@@ -10,9 +10,9 @@ use structopt::StructOpt;
 
 use crate::tables::{print_module_table, print_modules_table};
 
-/// GitHub CLI extension for managing local Terraform modules.
+/// GitHub CLI extension for managing Terraform modules.
 #[derive(StructOpt, Debug)]
-#[structopt(name = "gh-tf-mod", author, about)]
+#[structopt(name = "gh-tf-mod", author)]
 enum Commands {
     /// Configure local defaults for things like the GitHub organization and the default provider.
     #[structopt(name = "config")]
@@ -24,8 +24,26 @@ enum Commands {
         #[structopt(short, long)]
         provider: Option<String>,
     },
-    /// List available modules.
-    #[structopt(name = "ls")]
+    /// List information about modules.
+    #[structopt(
+        name = "ls",
+        long_about = "
+List information about modules.
+
+If no arguments are provided, the default behavior is to list all modules.
+If a module name is provided, the information for that module is displayed.
+
+If more information is available for a paginated response, an `End Cursor` will be displayed.
+To display values after that cursor, provide `End Cursor` as the value of the `-a|--after` argument.
+
+Only repositories that follow the naming pattern `^terraform-([^-]+)-(.*)-module$` (e.g. terraform-s3-lambda-module) will be displayed.
+Repos that do not match this pattern will be removed from results, and a `Hidden Repos` will be displayed to indicate how many were removed.
+
+Change the paging size by changing the `-f|--first` argument.
+
+Minimal information is displayed by default. Use flags like `-l|--long` to display more information.
+"
+    )]
     List {
         /// Module to inspect.
         module: Option<String>,
@@ -33,16 +51,17 @@ enum Commands {
         #[structopt(short, long)]
         org: Option<String>,
         /// Provider to list modules from.
+        /// If missing, it must be prepended. e.g. `aws-s3`.
         #[structopt(short, long)]
         provider: Option<String>,
-        /// Print description of module.
+        /// Show descriptions.
         #[structopt(short, long)]
         description: bool,
-        /// Print URL of module.
+        /// Show URLs.
         #[structopt(short, long)]
         url: bool,
-        /// JSON output.
-        #[structopt(long)]
+        /// Print output in JSON format.
+        #[structopt(short, long)]
         json: bool,
         /// Don't use color in output.
         #[structopt(long)]
@@ -53,12 +72,15 @@ enum Commands {
         /// After 'a' cursor. e.g. '-a xyz=' will list modules after the xyz= cursor.
         #[structopt(short, long)]
         after: Option<String>,
-        /// Show tags
+        /// Show tags.
         #[structopt(short, long)]
         tags: bool,
-        /// Show releases
+        /// Show releases.
         #[structopt(short, long)]
         releases: bool,
+        /// Activate all optional display flags
+        #[structopt(short, long)]
+        long: bool,
     },
 }
 
@@ -81,6 +103,7 @@ fn main() -> Result<()> {
             after,
             tags,
             releases,
+            long,
         } => {
             let config = Config::load(&org, &provider);
             let list_org = &org.unwrap_or(config.org.unwrap());
@@ -92,14 +115,25 @@ fn main() -> Result<()> {
                     if json {
                         println!("{}", serde_json::to_string(&list_module_response)?);
                     } else {
-                        print_module_table(
-                            list_module_response,
-                            no_color,
-                            description,
-                            url,
-                            tags,
-                            releases,
-                        );
+                        if long {
+                            print_module_table(
+                                list_module_response,
+                                no_color,
+                                true,
+                                true,
+                                true,
+                                true,
+                            );
+                        } else {
+                            print_module_table(
+                                list_module_response,
+                                no_color,
+                                description,
+                                url,
+                                tags,
+                                releases,
+                            );
+                        }
                     }
                 }
                 None => {
@@ -108,14 +142,25 @@ fn main() -> Result<()> {
                     if json {
                         println!("{}", serde_json::to_string(&list_modules_response)?);
                     } else {
-                        print_modules_table(
-                            list_modules_response,
-                            no_color,
-                            description,
-                            url,
-                            tags,
-                            releases,
-                        );
+                        if long {
+                            print_modules_table(
+                                list_modules_response,
+                                no_color,
+                                true,
+                                true,
+                                true,
+                                true,
+                            );
+                        } else {
+                            print_modules_table(
+                                list_modules_response,
+                                no_color,
+                                description,
+                                url,
+                                tags,
+                                releases,
+                            );
+                        }
                     }
                 }
             }
