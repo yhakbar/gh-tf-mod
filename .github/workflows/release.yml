@@ -85,3 +85,5 @@ jobs:
         with:
           path: dist
       - run: ./scripts/release.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
