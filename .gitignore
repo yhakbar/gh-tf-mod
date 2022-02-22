@@ -1,5 +1,7 @@
-*
-!.gitignore
-!gh-tf-mod
-!README.md
-!LICENSE
+/target
+.config/gh-tf-mod.yaml
+.vscode
+dist
+gh-tf-mod
+terraform
+terragrunt
