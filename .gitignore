@@ -5,3 +5,4 @@ dist
 gh-tf-mod
 terraform
 terragrunt
+CHANGELOG.md
