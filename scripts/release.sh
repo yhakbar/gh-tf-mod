@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euxo pipefail
+set -euo pipefail
 IFS=$'\n\t'
 
 tag=$(git describe --tags --abbrev=0)

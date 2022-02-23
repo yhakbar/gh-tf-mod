@@ -82,6 +82,7 @@ jobs:
 
       - name: Move Artifacts
         run: |
+          mkdir -p dist
           mv artifacts/darwin-amd64 dist/gh-tf-mod-darwin-amd64
           mv artifacts/darwin-arm64 dist/gh-tf-mod-darwin-arm64
           mv artifacts/linux-amd64 dist/gh-tf-mod-linux-amd64
