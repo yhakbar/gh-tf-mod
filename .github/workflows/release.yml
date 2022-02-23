@@ -18,14 +18,6 @@ jobs:
           target: x86_64-unknown-linux-musl
           cross: false
           platform: linux-amd64
-        # Broken for now
-        # - build: aarch64
-        #   os: ubuntu-latest
-        #   rust: stable
-        #   target: aarch64-unknown-linux-gnu
-        #   linker: gcc-aarch64-linux-gnu
-        #   cross: true
-        #   platform: linux-arm64
         - build: macos
           os: macos-latest
           rust: stable
@@ -83,7 +75,17 @@ jobs:
       - uses: actions/checkout@main
       - uses: actions/download-artifact@v2
         with:
-          path: dist
+          name: darwin-amd64
+          path: dist/gh-tf-mod-darwin-amd64
+      - uses: actions/download-artifact@v2
+        with:
+          name: darwin-arm64
+          path: dist/gh-tf-mod-darwin-arm64
+      - uses: actions/download-artifact@v2
+        with:
+          name: linux-amd64
+          path: dist/gh-tf-mod-linux-amd64
+
       - run: ./scripts/release.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

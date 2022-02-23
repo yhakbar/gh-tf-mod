@@ -14,4 +14,4 @@ fi
 gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
   -f tag_name="${tag}" -q .body > CHANGELOG.md
 
-gh release create "$tag" "$prerelease" --notes-file CHANGELOG.md "$(find dist -type f)"
+gh release create "$tag" "$prerelease" --notes-file CHANGELOG.md ./dist/*
