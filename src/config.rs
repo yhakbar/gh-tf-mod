@@ -54,7 +54,7 @@ impl Config {
         let config_path = PathBuf::from(".config");
         let config_file = &config_path.join("gh-tf-mod.yaml");
         let mut loaded_config = Config::default();
-        if metadata(&config_path).is_ok() {
+        if metadata(&config_file).is_ok() {
             let config_string = read_to_string(config_file).expect("Could not read config");
             loaded_config =
                 serde_yaml::from_str(&config_string).expect("Could not deserialize config");
